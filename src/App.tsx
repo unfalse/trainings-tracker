@@ -19,6 +19,8 @@ import './App.css';
 
 const REPEATS_BREAK_TIME = 60;
 const EXERCISES_BREAK_TIME = 90;
+const ONE_SECOND = 1000;
+const ALARM_SOUND_FILEPATH = 'beep-6.mp3';
 
 const mockedText =
   'Бег на месте 5х30 сек\n\
@@ -57,8 +59,12 @@ const App = () => {
   const [textData, setTextData] = useState(mockedText);
   const [exercisesData, setExercisesData] = useState(getArr(mockedText));
   const [disableNext, setDisableNext] = useState(false);
+  const [disableStart, setDisableStart] = useState(true);
+  const [disableExerciseText, setDisableExerciseText] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  const [currentExercise, setCurrentExercise] = useState(1);
   const alarmSoundRef = useRef(null);
+  const exerciseDurationRef = useRef({start: 0, end: 0});
 
   const onTextChange = (e: {target: {value: any}}) => {
     const times = getArr(e.target.value);
@@ -76,6 +82,9 @@ const App = () => {
   };
 
   const onNext = () => {
+    if (!disableExerciseText) {
+      setDisableExerciseText(true);
+    }
     const unchangedExercise = exercisesData.find(
       (exercise: {times: any; progress: string | any[]}) => {
         return Number(exercise.times) > exercise.progress.length;
@@ -95,11 +104,22 @@ const App = () => {
         return exercise;
       });
 
+      let breakDelay = REPEATS_BREAK_TIME;
+      if (
+        Number(unchangedExercise.times) - 1 ===
+        unchangedExercise.progress.length
+      ) {
+        breakDelay = EXERCISES_BREAK_TIME;
+        setCurrentExercise(currentExercise + 1);
+      }
+
+      /*
       let breakDelay =
         Number(unchangedExercise.times) - 1 ===
         unchangedExercise.progress.length
           ? EXERCISES_BREAK_TIME
-          : REPEATS_BREAK_TIME;
+		  : REPEATS_BREAK_TIME;
+			 */
 
       const startTimer = () => {
         setTimeout(() => {
@@ -111,7 +131,7 @@ const App = () => {
             return;
           }
           startTimer();
-        }, 1000);
+        }, ONE_SECOND);
       };
 
       setDisableNext(true);
@@ -120,33 +140,43 @@ const App = () => {
     }
   };
 
+  const onStopAlarm = () => {
+    alarmSoundRef.current.pause();
+    alarmSoundRef.current.currentTime = 0;
+  };
+
+  const onStart = () => {
+    // exerciseDurationRef
+    // TODO: implement a mechanism to count duration of each repeat and display it in the table in its exercise's row
+  };
+
   return (
     <div>
+      <button onClick={onStart} disabled={disableStart}>
+        START
+      </button>
+      <br />
       <textarea
         className="exercise-text"
         id=""
         cols={50}
         rows={10}
         defaultValue={textData}
+        disabled={disableExerciseText}
         onChange={onTextChange}></textarea>
       <ExerciseTable
         exercises={exercisesData}
         onSecondsChange={onSecondsChange}
+        currentExercise={currentExercise}
       />
       <br />
       <button onClick={onNext} disabled={disableNext}>
         NEXT
       </button>
-      <button
-        onClick={() => {
-          alarmSoundRef.current.pause();
-          alarmSoundRef.current.currentTime = 0;
-        }}>
-        STOP ALARM
-      </button>
+	  {/*<button onClick={onStopAlarm}>STOP ALARM</button>*/}
       <div>{seconds}</div>
       <audio id="alarm-sound" ref={alarmSoundRef}>
-        <source src="alarm.mp3" type="audio/mpeg"></source>
+        <source src={ALARM_SOUND_FILEPATH} type="audio/mpeg"></source>
         Your browser does not support the audio element.
       </audio>
     </div>
@@ -154,7 +184,7 @@ const App = () => {
 };
 
 // @ts-ignore
-const ExerciseTable = ({exercises, onSecondsChange}) => {
+const ExerciseTable = ({exercises, onSecondsChange, currentExercise}) => {
   return (
     <div style={{textAlign: 'left'}}>
       <table>
@@ -186,7 +216,12 @@ const ExerciseTable = ({exercises, onSecondsChange}) => {
               };
 
               return (
-                <tr key={exercise.id}>
+                <tr
+                  key={exercise.id}
+                  style={{
+                    backgroundColor:
+                      currentExercise === exerciseIndex + 1 ? 'lime' : 'white',
+                  }}>
                   <td>{exerciseIndex + 1}</td>
                   <td>{exercise.title}</td>
                   <td style={{textAlign: 'center'}}>{exercise.times}</td>

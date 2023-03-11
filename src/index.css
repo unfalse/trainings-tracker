@@ -54,7 +54,8 @@ button:hover {
 }
 button:focus,
 button:focus-visible {
-  outline: 6px auto red;
+  outline: none;
+  background-color: red;
 }
 button:disabled {
   background-color: gray;
