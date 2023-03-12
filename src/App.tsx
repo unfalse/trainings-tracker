@@ -37,8 +37,8 @@ const getArr = (str: string) => {
       const found = Array.from(
         record.matchAll(/(.+?)(\d+)х(\d{1,2})+(.+)?/gi),
       )[0];
-      console.log(record);
-      console.log(found);
+      // console.log(record);
+      // console.log(found);
       return found
         ? {
             id: v4(),
@@ -104,39 +104,18 @@ const App = () => {
         return exercise;
       });
 
-      let breakDelay = REPEATS_BREAK_TIME;
-      if (
-        Number(unchangedExercise.times) - 1 ===
-        unchangedExercise.progress.length
-      ) {
-        breakDelay = EXERCISES_BREAK_TIME;
-        setCurrentExercise(currentExercise + 1);
-      }
-
-      /*
-      let breakDelay =
+      const breakDelay =
         Number(unchangedExercise.times) - 1 ===
         unchangedExercise.progress.length
           ? EXERCISES_BREAK_TIME
-		  : REPEATS_BREAK_TIME;
-			 */
-
-      const startTimer = () => {
-        setTimeout(() => {
-          breakDelay -= 1;
-          setSeconds(breakDelay);
-          if (breakDelay === 0) {
-            setDisableNext(false);
-            alarmSoundRef.current.play();
-            return;
-          }
-          startTimer();
-        }, ONE_SECOND);
-      };
+          : REPEATS_BREAK_TIME;
 
       setDisableNext(true);
       setExercisesData(updatedExerciseData);
-      startTimer();
+      startAndUpdateTimer(breakDelay, setSeconds, () => {
+        setDisableNext(false);
+        alarmSoundRef.current.play();
+      });
     }
   };
 
@@ -146,8 +125,6 @@ const App = () => {
   };
 
   const onStart = () => {
-    // exerciseDurationRef
-    // TODO: implement a mechanism to count duration of each repeat and display it in the table in its exercise's row
   };
 
   return (
@@ -173,8 +150,10 @@ const App = () => {
       <button onClick={onNext} disabled={disableNext}>
         NEXT
       </button>
-	  {/*<button onClick={onStopAlarm}>STOP ALARM</button>*/}
       <div>{seconds}</div>
+      <TimerButton delay={60} />
+      &nbsp;
+      <TimerButton delay={90} />
       <audio id="alarm-sound" ref={alarmSoundRef}>
         <source src={ALARM_SOUND_FILEPATH} type="audio/mpeg"></source>
         Your browser does not support the audio element.
@@ -236,6 +215,42 @@ const ExerciseTable = ({exercises, onSecondsChange, currentExercise}) => {
         </tbody>
       </table>
     </div>
+  );
+};
+
+const startAndUpdateTimer = (delay, setTimerState, onTimerEnd) => {
+  const start = Date.now();
+  const intervalId = setInterval(function() {
+    const delta = Math.floor((Date.now() - start) / ONE_SECOND);
+    const secondsPassed = delay - delta;
+    setTimerState(secondsPassed);
+    if (secondsPassed <= 0) {
+      // timerEndSoundRef.current.play();
+      onTimerEnd();
+      clearInterval(intervalId);
+    }
+  }, 100);
+};
+
+const TimerButton = ({delay = 60}) => {
+  const [timer, setTimer] = useState(0);
+  const timerEndSoundRef = useRef(null);
+  const onTimerToggle = () => {
+    startAndUpdateTimer(delay, setTimer, () => {
+      timerEndSoundRef.current.play();
+    });
+  };
+
+  return (
+    <span>
+      <button onClick={onTimerToggle} color={timer === 0 ? 'blue' : 'green'}>
+        Timer for {delay} seconds: {timer}
+      </button>
+      <audio id="alarm-sound" ref={timerEndSoundRef}>
+        <source src={ALARM_SOUND_FILEPATH} type="audio/mpeg"></source>
+        Your browser does not support the audio element.
+      </audio>
+    </span>
   );
 };
 
