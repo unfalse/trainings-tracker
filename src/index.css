@@ -61,6 +61,10 @@ button:disabled {
   background-color: gray;
 }
 
+button.active {
+  background-color: green;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

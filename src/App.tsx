@@ -104,11 +104,14 @@ const App = () => {
         return exercise;
       });
 
-      const breakDelay =
+      let breakDelay = REPEATS_BREAK_TIME;
+      if (
         Number(unchangedExercise.times) - 1 ===
         unchangedExercise.progress.length
-          ? EXERCISES_BREAK_TIME
-          : REPEATS_BREAK_TIME;
+      ) {
+        breakDelay = EXERCISES_BREAK_TIME;
+        setCurrentExercise(currentExercise + 1);
+      }
 
       setDisableNext(true);
       setExercisesData(updatedExerciseData);
@@ -124,8 +127,7 @@ const App = () => {
     alarmSoundRef.current.currentTime = 0;
   };
 
-  const onStart = () => {
-  };
+  const onStart = () => {};
 
   return (
     <div>
@@ -139,20 +141,34 @@ const App = () => {
         cols={50}
         rows={10}
         defaultValue={textData}
-        disabled={disableExerciseText}
+        // disabled={false || disableExerciseText}
         onChange={onTextChange}></textarea>
       <ExerciseTable
         exercises={exercisesData}
         onSecondsChange={onSecondsChange}
         currentExercise={currentExercise}
       />
+      <div style={{display: 'inline-block', margin: '20px'}}>
+        <button
+          onClick={onNext}
+          disabled={disableNext}
+          className={seconds > 0 ? 'active' : ''}>
+          NEXT
+        </button>
+        <div
+          style={{
+            display: 'inline-block',
+            marginRight: '10px',
+            marginLeft: '10px',
+            width: '30px',
+          }}>
+          {seconds}
+        </div>
+      </div>
       <br />
-      <button onClick={onNext} disabled={disableNext}>
-        NEXT
-      </button>
-      <div>{seconds}</div>
+      <TimerButton delay={30} />
+      <TimerButton delay={45} />
       <TimerButton delay={60} />
-      &nbsp;
       <TimerButton delay={90} />
       <audio id="alarm-sound" ref={alarmSoundRef}>
         <source src={ALARM_SOUND_FILEPATH} type="audio/mpeg"></source>
@@ -242,15 +258,45 @@ const TimerButton = ({delay = 60}) => {
   };
 
   return (
-    <span>
-      <button onClick={onTimerToggle} color={timer === 0 ? 'blue' : 'green'}>
-        Timer for {delay} seconds: {timer}
+    <div
+      style={{
+        border: '1px solid black',
+        borderRadius: '15px',
+        padding: '15px',
+        margin: '5px',
+        display: 'inline',
+      }}>
+      <button onClick={onTimerToggle} className={timer === 0 ? '' : 'active'}>
+        {delay}s |&gt;
       </button>
+      <div
+        style={{
+          width: '30px',
+          display: 'inline-block',
+          marginRight: '10px',
+          marginLeft: '10px',
+        }}>
+        {' '}
+        {timer}
+      </div>
+
+      <span style={{position: 'absolute', display: 'none'}}>
+        <span
+          style={{
+            position: 'relative',
+            bottom: '18px',
+            backgroundColor: 'white',
+            fontSize: '8pt',
+            right: '105px',
+          }}>
+          timer (c) nopefish
+        </span>
+      </span>
       <audio id="alarm-sound" ref={timerEndSoundRef}>
         <source src={ALARM_SOUND_FILEPATH} type="audio/mpeg"></source>
         Your browser does not support the audio element.
       </audio>
-    </span>
+    </div>
   );
 };
 
