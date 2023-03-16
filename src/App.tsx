@@ -266,7 +266,10 @@ const TimerButton = ({delay = 60}) => {
         margin: '5px',
         display: 'inline',
       }}>
-      <button onClick={onTimerToggle} className={timer === 0 ? '' : 'active'}>
+      <button
+        onClick={onTimerToggle}
+        className={timer === 0 ? '' : 'active'}
+        disabled={timer > 0}>
         {delay}s |&gt;
       </button>
       <div
