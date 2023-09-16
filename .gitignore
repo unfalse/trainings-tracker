@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 public/alarm.mp3
+
+.anjuta/
+.anjuta_sym_db.db
+trainings-vite.anjuta
+training-dist.tar.gz
