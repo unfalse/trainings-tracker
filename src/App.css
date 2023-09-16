@@ -5,7 +5,82 @@
   text-align: center;
 }
 
+.app-container {
+  display: flex;
+  flex-direction: row;
+}
+
 .exercise-text {
   font-family: 'Courier New', Courier, monospace;
   font-size: 16pt;
+}
+
+.text-and-table-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.timers-container {
+  margin: 0px 20px;
+}
+
+.presetted-timers-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.next-button-and-countdown-container {
+  display: inline-block;
+  margin: 20px;
+}
+
+.next-countdown {
+  display: inline-block;
+  margin-right: 10px;
+  margin-left: 10px;
+  width: 30px;
+}
+
+.centered-text {
+  text-align: center;
+}
+
+.exercise-table-row-active {
+  background-color: lime;
+}
+
+.exercise-table-row-inactive {
+  background-color: white;
+}
+
+.timer-button-container {
+  margin: 15px 0px;
+}
+
+.timer-button__button-and-countdown-container {
+  border: 1px solid black;
+  border-radius: 15px;
+  padding: 15px;
+  margin: 5px;
+  display: inline;
+}
+
+.timer-button__countdown {
+  width: 30px;
+  display: inline-block;
+  margin-right: 10px;
+  margin-left: 10px;
+}
+
+.timer-button__copyright-container {
+  position: absolute;
+  display: none;
+}
+
+.timer-button__copyright {
+  position: relative;
+  bottom: 18px;
+  background-color: white;
+  font-size: 8pt;
+  right: 105px;
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*
  * TODO:
  * - добавить поддержку упражнений с неизвестным количеством подходов - просто писать вместо повторений N, например 5хN, * при этом после строки прогресса добавить кнопку STOP для перехода к следующему упражнению (с перерывом 2 минуты)
@@ -12,6 +13,7 @@ import {
   ReactPortal,
   useState,
   useRef,
+  useEffect,
 } from 'react';
 import {v4} from 'uuid';
 
@@ -59,7 +61,6 @@ const App = () => {
   const [textData, setTextData] = useState(mockedText);
   const [exercisesData, setExercisesData] = useState(getArr(mockedText));
   const [disableNext, setDisableNext] = useState(false);
-  const [disableStart, setDisableStart] = useState(true);
   const [disableExerciseText, setDisableExerciseText] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [currentExercise, setCurrentExercise] = useState(1);
@@ -110,8 +111,13 @@ const App = () => {
         unchangedExercise.progress.length
       ) {
         breakDelay = EXERCISES_BREAK_TIME;
-        setCurrentExercise(currentExercise + 1);
+        const updatedCurrentExercise =
+          currentExercise + 1 > exercisesData.length ? 1 : currentExercise + 1;
+        //        console.log(updatedCurrentExercise);
+        setCurrentExercise(updatedCurrentExercise);
       }
+
+      //      console.log(exercisesData.length);
 
       setDisableNext(true);
       setExercisesData(updatedExerciseData);
@@ -127,49 +133,52 @@ const App = () => {
     alarmSoundRef.current.currentTime = 0;
   };
 
-  const onStart = () => {};
+  const nextButtonClass = seconds > 0 ? 'active blink-bg' : '';
 
   return (
-    <div>
-      <button onClick={onStart} disabled={disableStart}>
-        START
-      </button>
-      <br />
-      <textarea
-        className="exercise-text"
-        id=""
-        cols={50}
-        rows={10}
-        defaultValue={textData}
-        // disabled={false || disableExerciseText}
-        onChange={onTextChange}></textarea>
-      <ExerciseTable
-        exercises={exercisesData}
-        onSecondsChange={onSecondsChange}
-        currentExercise={currentExercise}
-      />
-      <div style={{display: 'inline-block', margin: '20px'}}>
-        <button
-          onClick={onNext}
-          disabled={disableNext}
-          className={seconds > 0 ? 'active' : ''}>
-          NEXT
-        </button>
-        <div
-          style={{
-            display: 'inline-block',
-            marginRight: '10px',
-            marginLeft: '10px',
-            width: '30px',
-          }}>
-          {seconds}
+    <div className="app-container">
+      <div className="text-and-table-container">
+        <textarea
+          className="exercise-text"
+          id=""
+          // cols={80}
+          rows={10}
+          defaultValue={textData}
+          // disabled={false || disableExerciseText}
+          onChange={onTextChange}></textarea>
+
+        <ExerciseTable
+          exercises={exercisesData}
+          onSecondsChange={onSecondsChange}
+          currentExercise={currentExercise}
+        />
+      </div>
+
+      <div className="timers-container">
+        <div className="presetted-timers-container">
+          <div>
+            <TimerButton delay={30} />
+            <TimerButton delay={45} />
+          </div>
+          <div>
+            <TimerButton delay={60} />
+            <TimerButton delay={90} />
+          </div>
+        </div>
+        <CustomTimer />
+        <div className="next-button-and-countdown-container">
+          <button
+            onClick={onNext}
+            disabled={disableNext}
+            className={nextButtonClass}>
+            NEXT
+          </button>
+
+          <div className="next-countdown">{seconds}</div>
         </div>
       </div>
+
       <br />
-      <TimerButton delay={30} />
-      <TimerButton delay={45} />
-      <TimerButton delay={60} />
-      <TimerButton delay={90} />
       <audio id="alarm-sound" ref={alarmSoundRef}>
         <source src={ALARM_SOUND_FILEPATH} type="audio/mpeg"></source>
         Your browser does not support the audio element.
@@ -181,7 +190,7 @@ const App = () => {
 // @ts-ignore
 const ExerciseTable = ({exercises, onSecondsChange, currentExercise}) => {
   return (
-    <div style={{textAlign: 'left'}}>
+    <div>
       <table>
         <tbody>
           <tr>
@@ -190,9 +199,9 @@ const ExerciseTable = ({exercises, onSecondsChange, currentExercise}) => {
             <th>Подходы</th>
             <th>х</th>
             <th>Повторы</th>
-            <th style={{textAlign: 'center'}}>Примечания</th>
+            <th className="centered-text">Примечания</th>
 
-            <th style={{textAlign: 'center'}}>Прогресс</th>
+            <th className="centered-text">Прогресс</th>
           </tr>
           {exercises.map(
             (
@@ -210,20 +219,20 @@ const ExerciseTable = ({exercises, onSecondsChange, currentExercise}) => {
                 onSecondsChange(exercise.id);
               };
 
+              const currentRowClass =
+                currentExercise === exerciseIndex + 1
+                  ? 'exercise-table-row-active'
+                  : 'exercise-table-row-inactive';
+
               return (
-                <tr
-                  key={exercise.id}
-                  style={{
-                    backgroundColor:
-                      currentExercise === exerciseIndex + 1 ? 'lime' : 'white',
-                  }}>
+                <tr key={exercise.id} className={currentRowClass}>
                   <td>{exerciseIndex + 1}</td>
                   <td>{exercise.title}</td>
-                  <td style={{textAlign: 'center'}}>{exercise.times}</td>
+                  <td className="centered-text">{exercise.times}</td>
                   <td>x</td>
-                  <td style={{textAlign: 'center'}}>{exercise.repeats}</td>
-                  <td style={{textAlign: 'center'}}>{exercise.after}</td>
-                  <td style={{textAlign: 'center'}}>{exercise.progress}</td>
+                  <td className="centered-text">{exercise.repeats}</td>
+                  <td className="centered-text">{exercise.after}</td>
+                  <td className="centered-text">{exercise.progress}</td>
                 </tr>
               );
             },
@@ -248,57 +257,73 @@ const startAndUpdateTimer = (delay, setTimerState, onTimerEnd) => {
   }, 100);
 };
 
-const TimerButton = ({delay = 60}) => {
+const CustomTimer = () => {
+  const [timerValue, setTimerValue] = useState(20);
+  const [disableInput, setDisableInput] = useState(false);
+
+  const onTimerValueChange = (e: {target: {value: string}}) => {
+    setTimerValue(e.target.value);
+  };
+
+  const onTimerStart = () => {
+    setDisableInput(true);
+  };
+
+  const onTimerFinish = () => {
+    setDisableInput(false);
+  };
+
+  return (
+    <div>
+      Custom timer:
+      <br />
+      <input
+        type="text"
+        onChange={onTimerValueChange}
+        disable={disableInput.toString()}
+        value={timerValue}
+      />
+      <TimerButton
+        delay={timerValue}
+        onStart={onTimerStart}
+        onFinish={onTimerFinish}
+      />
+    </div>
+  );
+};
+
+const TimerButton = ({delay = 60, onStart = () => {}, onFinish = () => {}}) => {
   const [timer, setTimer] = useState(0);
   const timerEndSoundRef = useRef(null);
   const onTimerToggle = () => {
     startAndUpdateTimer(delay, setTimer, () => {
       timerEndSoundRef.current.play();
+      onFinish();
     });
+    onStart();
   };
+  const buttonClass = timer === 0 ? '' : 'active blink-bg';
+  const isButtonDisabled = timer > 0;
 
   return (
-    <div
-      style={{
-        border: '1px solid black',
-        borderRadius: '15px',
-        padding: '15px',
-        margin: '5px',
-        display: 'inline',
-      }}>
-      <button
-        onClick={onTimerToggle}
-        className={timer === 0 ? '' : 'active'}
-        disabled={timer > 0}>
-        {delay}s |&gt;
-      </button>
-      <div
-        style={{
-          width: '30px',
-          display: 'inline-block',
-          marginRight: '10px',
-          marginLeft: '10px',
-        }}>
-        {' '}
-        {timer}
-      </div>
+    <div className="timer-button-container">
+      <div className="timer-button__button-and-countdown-container">
+        <button
+          onClick={onTimerToggle}
+          className={buttonClass}
+          disabled={isButtonDisabled}>
+          {delay}s |&gt;
+        </button>
+        <div className="timer-button__countdown"> {timer}</div>
 
-      <span style={{position: 'absolute', display: 'none'}}>
-        <span
-          style={{
-            position: 'relative',
-            bottom: '18px',
-            backgroundColor: 'white',
-            fontSize: '8pt',
-            right: '105px',
-          }}>
-          timer (c) nopefish
+        <span className="timer-button__copyright-container">
+          <span className="timer-button__copyright">timer (c) nopefish</span>
         </span>
-      </span>
-      <audio id="alarm-sound" ref={timerEndSoundRef}>
-        <source src={ALARM_SOUND_FILEPATH} type="audio/mpeg"></source>
-        Your browser does not support the audio element.
-      </audio>
+        <audio id="alarm-sound" ref={timerEndSoundRef}>
+          <source src={ALARM_SOUND_FILEPATH} type="audio/mpeg"></source>
+          Your browser does not support the audio element.
+        </audio>
+      </div>
     </div>
   );
 };
