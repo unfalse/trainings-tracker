@@ -2,7 +2,7 @@ import http from 'http';
 import {v4} from 'uuid';
 import fs from 'fs';
 
-const host = 'localhost';
+const host = '127.0.0.1';
 const port = 8000;
 const TRAIN_REPORTS_DIR = process.cwd() + '/train-reports/';
 
