@@ -1,17 +1,13 @@
 import { Exercise, ExerciseTableParams } from "../types";
 
-export const ExerciseTable = ({ exercises, onSecondsChange, currentExerciseIndex }: ExerciseTableParams) => {
+export const ExerciseTable = ({ exercises, currentExerciseIndex, currentExerciseID, trainHasStarted }: ExerciseTableParams) => {
   const renderExercises = () => {
     return (exercises.map((
       exercise: Exercise,
       exerciseIndex: number,
     ) => {
-      const onCheckBoxSecondsChange = () => {
-        onSecondsChange(exercise.id);
-      };
-
       const currentRowClass =
-        currentExerciseIndex === exerciseIndex + 1
+        currentExerciseID === exercise.id
           ? 'exercise-table-row-active'
           : 'exercise-table-row-inactive';
 
@@ -31,7 +27,7 @@ export const ExerciseTable = ({ exercises, onSecondsChange, currentExerciseIndex
   };
 
   return (
-    <div>
+    <div style={{ color: trainHasStarted ? 'black' : 'darkgray' }}>
       <table>
         <tbody>
           <tr>
