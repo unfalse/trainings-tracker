@@ -39,37 +39,33 @@ const getArr = (str: string): Exercise[] => {
       after: item[4],
       isSeconds: false,
       progress: 0,
+      startArray: [],
     }));
 
   return exercises;
 };
 
 const App = () => {
-  const [textData, setTextData] = useState(mockedText);
-  const [exercisesData, setExercisesData] = useState(getArr(mockedText));
+  const [trainText, setTrainText] = useState<string>(mockedText);
+  const [exercisesData, setExercisesData] = useState<Exercise[]>(getArr(mockedText));
   const [disableNext, setDisableNext] = useState(false);
-  const [disableExerciseText, setDisableExerciseText] = useState(false);
-  const [seconds, setSeconds] = useState(0);
+  const [disableExerciseText, setDisableExerciseText] = useState<boolean>(false);
+  const [seconds, setSeconds] = useState<number>(0);
   const [currentExerciseNumber, setCurrentExerciseNumber] = useState<number>(1);
+  const [currentExerciseID, setCurrentExerciseID] = useState<string>(1);
+  const [trainHasStarted, setTrainHasStarted] = useState<boolean>(false);
+  const [startTrainingDate, setStartTrainingDate] = useState<Date>();
+  const [previousRepeatEndTime, setPreviousRepeatEndTime] = useState<Date>();
   const alarmSoundRef = useRef<HTMLAudioElement>(null);
-  // const exerciseDurationRef = useRef({start: 0, end: 0});
 
-  const onTextChange = (e: {target: {value: any}}) => {
+  const onTextChange = (e: { target: { value: string } }) => {
     const times = getArr(e.target.value);
     setExercisesData(times);
+    setTrainText(e.target.value)
   };
 
-  const onSecondsChange = (recordId: any) => {
-    setExercisesData(
-      exercisesData.map(exercise => ({
-        ...exercise,
-        isSeconds:
-          recordId === exercise.id ? !exercise.isSeconds : exercise.isSeconds,
-      })),
-    );
-  };
-
-  const onNext = () => {
+  const onClickNext = () => {
+    const startRepeatTime = new Date();
     if (!disableExerciseText) {
       setDisableExerciseText(true);
     }
@@ -87,6 +83,7 @@ const App = () => {
           return {
             ...exercise,
             progress: exercise.progress + 1,
+            startArray: exercise.startArray.concat([startRepeatTime]),
           };
         }
         return exercise;
@@ -95,18 +92,18 @@ const App = () => {
       let breakDelay: number = REPEATS_BREAK_TIME;
       // 4. Если число выполненных подходов равно общему числу подходов
       if (
-        Number(exerciseInProgress.times) - 1 ===
-        exerciseInProgress.progress
+        Number(exerciseInProgress.times) - 1 === exerciseInProgress.progress
       ) {
+        const currentExerciseIndex = exercisesData.findIndex(({ id }) => id === currentExerciseID);
         // 5. Устанавливаем интервал для перерыва между упражнениями
         breakDelay = EXERCISES_BREAK_TIME;
-        if (currentExerciseNumber + 1 > exercisesData.length) {
+        if (currentExerciseIndex === exercisesData.length - 1) {
           // 6. Если текущий номер упражнения больше чем общее количество упражнений,
           // то текущий номер будет равен первому упражнению
-          setCurrentExerciseNumber(1);
+          setCurrentExerciseID(exercisesData[0].id);
         } else {
           // 7. Иначе текущий номер увеличиваем на 1
-          setCurrentExerciseNumber(currentExerciseNumber + 1);
+          setCurrentExerciseID(exercisesData[currentExerciseIndex + 1].id);
         }
       }
 
@@ -119,12 +116,45 @@ const App = () => {
     }
   };
 
-  const onStopAlarm = () => {
-    alarmSoundRef.current?.pause();
-    if (alarmSoundRef.current) {
-      alarmSoundRef.current.currentTime = 0;
-    }
-  };
+  const onClickStart = () => {
+    const startDate = new Date();
+    setTrainHasStarted(true);
+    setStartTrainingDate(startDate);
+    // Время завершения предыдущего повторения равно времени начала тренировки
+    setPreviousRepeatEndTime(startDate);
+    setCurrentExerciseID(exercisesData[0].id);
+  }
+
+  const onClickEndAndSave = async () => {
+    const endDate = new Date();
+    const trainDuration = 0; // TODO: endDate - startDate;
+    const trainReport = {
+      trainText,
+      startDate: startTrainingDate,
+      endDate,
+      trainDuration,
+      lastCompletedExercise: '',
+      exercisesData
+    };
+    console.log(trainReport);
+    console.log(JSON.stringify(trainReport));
+    
+    // Default options are marked with *
+    const response = await fetch('http://127.0.0.1:8000', {
+      method: "POST", // *GET, POST, PUT, DELETE, etc.
+      mode: "cors", // no-cors, *cors, same-origin
+      cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+      credentials: "same-origin", // include, *same-origin, omit
+      headers: {
+        "Content-Type": "application/json",
+        // 'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      redirect: "follow", // manual, *follow, error
+      referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+      body: JSON.stringify(trainReport), // body data type must match "Content-Type" header
+    });
+    console.log(response.statusText); // parses JSON response into native JavaScript objects
+  }
 
   const nextButtonClass = seconds > 0 ? 'active blink-bg' : '';
 
@@ -136,15 +166,23 @@ const App = () => {
           id=""
           // cols={80}
           rows={10}
-          defaultValue={textData}
+          defaultValue={mockedText}
           // disabled={false || disableExerciseText}
           onChange={onTextChange}></textarea>
-
+        
         <ExerciseTable
           exercises={exercisesData}
-          onSecondsChange={onSecondsChange}
+          // onSecondsChange={onSecondsChange}
           currentExerciseIndex={currentExerciseNumber}
+          currentExerciseID={currentExerciseID}
+          trainHasStarted={trainHasStarted}
         />
+        <div style={{ position: 'absolute', display: trainHasStarted ? 'none' : 'block', bottom: '50px', left: '50px', backgroundColor: '#0000ffbd' }}>
+          <button onClick={onClickStart} style={{ width: '30vw', height: '100px', backgroundColor: '#0000ff00' }}>
+            START
+          </button>
+        </div>
+
       </div>
 
       <div className="timers-container">
@@ -160,13 +198,18 @@ const App = () => {
         <CustomTimer />
         <div className="next-button-and-countdown-container">
           <button
-            onClick={onNext}
+            onClick={onClickNext}
             disabled={disableNext}
             className={nextButtonClass}>
             NEXT
           </button>
 
           <div className="next-countdown">{seconds}</div>
+        </div>
+        <div>
+          <button onClick={onClickEndAndSave}>
+            END AND SAVE
+          </button>
         </div>
       </div>
 
