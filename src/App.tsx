@@ -1,16 +1,19 @@
 import {
   useState,
   useRef,
+  useEffect,
+  Fragment
 } from 'react';
 import {v4} from 'uuid';
 
 import { ExerciseTable } from './components/exercise-table';
 import { CustomTimer } from './components/custom-timer';
-import { TimerButton } from './components/timer-button';
 import { startAndUpdateTimer } from './funcs/start-and-update-timer';
 import { ALARM_SOUND_FILEPATH, EXERCISES_BREAK_TIME, REPEATS_BREAK_TIME } from './const';
 import { Exercise } from './types';
 import './App.css';
+import { loadReportFromFile, saveReportToFile } from './reports/files-api';
+import { getExercisesFromInputString } from './funcs/parse-input';
 
 const mockedText =
   'Бег на месте 5х30 сек\n\
@@ -20,34 +23,9 @@ const mockedText =
 Лодочка 3х15\n\
 Планка боковая 4х20 сек';
 
-const getArr = (str: string): Exercise[] => {
-  const records: string[] = str.split('\n');
-  const rawArrays: RegExpMatchArray[] = records
-    .filter(record => record !== '')
-    .map((record: string) =>
-      Array.from(record.matchAll(/(.+?)(\d+)х(\d{1,2})+(.+)?/gi),)[0]
-    )
-    .filter(found => found !== undefined);
-
-  const exercises: Exercise[] =
-    rawArrays
-    .map((item) => ({
-      id: v4(),
-      title: item[1],
-      times: item[2],
-      repeats: item[3],
-      after: item[4],
-      isSeconds: false,
-      progress: 0,
-      startArray: [],
-    }));
-
-  return exercises;
-};
-
 const App = () => {
   const [trainText, setTrainText] = useState<string>(mockedText);
-  const [exercisesData, setExercisesData] = useState<Exercise[]>(getArr(mockedText));
+  const [exercisesData, setExercisesData] = useState<Exercise[]>(getExercisesFromInputString(mockedText));
   const [disableNext, setDisableNext] = useState(false);
   const [disableExerciseText, setDisableExerciseText] = useState<boolean>(false);
   const [seconds, setSeconds] = useState<number>(0);
@@ -56,10 +34,26 @@ const App = () => {
   const [trainHasStarted, setTrainHasStarted] = useState<boolean>(false);
   const [startTrainingDate, setStartTrainingDate] = useState<Date>();
   const [previousRepeatEndTime, setPreviousRepeatEndTime] = useState<Date>();
+  const [latestTraining, setLatestTraining] = useState<any>({});
   const alarmSoundRef = useRef<HTMLAudioElement>(null);
 
+  useEffect(() => {
+    const loadAndSetReportFromFile = async () => {
+      const { exercisesList, startDate, endDate } = await loadReportFromFile();
+      setLatestTraining({
+        exercisesList,
+        exerciseDate: new Date(endDate).toLocaleDateString('ru-RU'),
+        startTime: new Date(startDate).toLocaleTimeString('ru-RU'),
+        endTime: new Date(endDate).toLocaleTimeString('ru-RU')
+      });
+      return exercisesList;
+    };
+
+    loadAndSetReportFromFile();
+  },[]);
+
   const onTextChange = (e: { target: { value: string } }) => {
-    const times = getArr(e.target.value);
+    const times = getExercisesFromInputString(e.target.value);
     setExercisesData(times);
     setTrainText(e.target.value)
   };
@@ -138,22 +132,13 @@ const App = () => {
     };
     console.log(trainReport);
     console.log(JSON.stringify(trainReport));
-    
-    // Default options are marked with *
-    const response = await fetch('http://127.0.0.1:8000', {
-      method: "POST", // *GET, POST, PUT, DELETE, etc.
-      mode: "cors", // no-cors, *cors, same-origin
-      cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-      credentials: "same-origin", // include, *same-origin, omit
-      headers: {
-        "Content-Type": "application/json",
-        // 'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      redirect: "follow", // manual, *follow, error
-      referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-      body: JSON.stringify(trainReport), // body data type must match "Content-Type" header
-    });
-    console.log(response.statusText); // parses JSON response into native JavaScript objects
+    const statusText = await saveReportToFile(trainReport);
+
+    console.log(statusText); // parses JSON response into native JavaScript objects
+  }
+
+  const onClickShowPreviousTraining = async () => {
+
   }
 
   const nextButtonClass = seconds > 0 ? 'active blink-bg' : '';
@@ -187,13 +172,22 @@ const App = () => {
 
       <div className="timers-container">
         <div className="presetted-timers-container">
-          <div>
-            <TimerButton delay={30} />
-            <TimerButton delay={45} />
+          <div className="previous-training-info">
+            <strong>Предыдущая тренировка</strong><br/>
+            {latestTraining.exercisesList && latestTraining.exercisesList.map((exerciseTitle: string) => <Fragment key={v4()}>{exerciseTitle}<br/></Fragment>)}
+            
+            <strong>Дата тренировки: </strong>
+            {latestTraining.exerciseDate}<br/>
+            
+            <strong>Время начала: </strong>
+            {latestTraining.startTime}<br/>
+            
+            <strong>Время окончания: </strong>
+            {latestTraining.endTime}<br/>
           </div>
-          <div>
-            <TimerButton delay={60} />
-          </div>
+          <button onClick={onClickShowPreviousTraining}>
+            Show previous training
+          </button>
         </div>
         <CustomTimer />
         <div className="next-button-and-countdown-container">
