@@ -30,6 +30,11 @@
   flex-direction: column;
 }
 
+.previous-training-info {
+  font-size: 14px;
+  text-align: justify;
+}
+
 .next-button-and-countdown-container {
   display: inline-block;
   margin: 20px;

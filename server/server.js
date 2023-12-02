@@ -1,5 +1,5 @@
 import http from 'http';
-import {v4} from 'uuid';
+import { v4 } from 'uuid';
 import fs from 'fs';
 
 const host = '127.0.0.1';
@@ -13,7 +13,6 @@ const requestListener = function (request, response) {
         'Access-Control-Max-Age': 2592000, // 30 days
         'Access-Control-Request-Headers': '*',
         'Access-Control-Allow-Headers': '*',
-        /** add other headers as per requirement */
     };
     
     if (request.method === 'OPTIONS') {
@@ -50,14 +49,17 @@ const requestListener = function (request, response) {
     }
       
     if (request.method === 'GET') {
+        const parsedURL = new URL(request.url, `http://${request.headers.host}`);
+        let output = '';
+        console.log(parsedURL);
         console.log('GET');
 
-        const obj = JSON.parse(fs.readFileSync(TRAIN_REPORTS_DIR + '26-11-2023_21-00_9626bc05-5b4a-4a33-9404-c8c6f28519e3.json', 'utf8'));
-        console.log(obj.startDate);
-        console.log(new Date(obj.startDate).toLocaleString('ru-RU'));
+        if (parsedURL.pathname === '/latest') {
+            output = getLatestTrain();
+        }
 
         response.writeHead(200, headers);
-        response.end("My first server!");
+        response.end(output);
     }
 
     if (['GET', 'POST'].indexOf(request.method) === -1) {
@@ -65,6 +67,24 @@ const requestListener = function (request, response) {
         response.end(`${request.method} is not allowed for the request.`);
     }
 };
+
+const getLatestTrain = () => {
+    const trainFilesList = fs.readdirSync(TRAIN_REPORTS_DIR);
+    const trainFilesInfoList = trainFilesList.map(trainFile => {
+        const trainJSON = JSON.parse(fs.readFileSync(TRAIN_REPORTS_DIR + trainFile, 'utf8'));
+        return ({
+            fileName: trainFile,
+            endDate: new Date(trainJSON.endDate),
+        });
+    });
+    let latestTrain = trainFilesInfoList[0];
+    trainFilesInfoList.forEach(trainFileInfo => {
+        if (trainFileInfo.endDate > latestTrain.endDate) {
+            latestTrain = trainFileInfo;
+        }
+    });
+    return fs.readFileSync(TRAIN_REPORTS_DIR + latestTrain.fileName, 'utf8');
+}
 
 const server = http.createServer(requestListener);
 server.listen(port, host, () => {
