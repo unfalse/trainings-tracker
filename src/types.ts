@@ -27,7 +27,6 @@ export type Exercise = {
 export type ExerciseTableParams = {
     exercises: Array<Exercise>;
     // onSecondsChange: Function;
-    currentExerciseIndex: number;
     trainHasStarted: boolean;
     currentExerciseID: string;
 };

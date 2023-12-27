@@ -16,15 +16,28 @@ const saveReportToFile = async (trainReport: any) => {
     return response.statusText;
 };
 
-const loadReportFromFile = async () => {
-    const response = await fetch('http://127.0.0.1:8000/latest');
-    const { startDate, endDate, trainText } = await response.json();
+const loadAndParseReportFromFile = async () => {
+    const { data, error } = await loadReportFromFile();
+    const { startDate, endDate, trainText } = data || {};
     const exercisesList = trainText.split('\n');
     return {
-        exercisesList,
-        startDate,
-        endDate
+        data: {
+            exercisesList,
+            startDate: new Date(startDate).toLocaleTimeString('ru-RU'),
+            endDate: new Date(endDate).toLocaleDateString('ru-RU'),
+        },
+        error
     };
 };
 
-export { saveReportToFile, loadReportFromFile };
+const loadReportFromFile = async () => {
+    try {
+        const response = await fetch('http://127.0.0.1:8000/latest');
+        const data = await response.json();
+        return { data };
+    } catch (error) {
+        return { error };
+    }
+};
+
+export { saveReportToFile, loadReportFromFile, loadAndParseReportFromFile };
