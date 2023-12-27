@@ -9,11 +9,12 @@ import {v4} from 'uuid';
 import { ExerciseTable } from './components/exercise-table';
 import { CustomTimer } from './components/custom-timer';
 import { startAndUpdateTimer } from './funcs/start-and-update-timer';
-import { ALARM_SOUND_FILEPATH, EXERCISES_BREAK_TIME, REPEATS_BREAK_TIME } from './const';
+import { ALARM_SOUND_FILEPATH, EXERCISES_BREAK_TIME, MOBILE_MODE, REPEATS_BREAK_TIME } from './const';
 import { Exercise } from './types';
 import './App.css';
-import { loadReportFromFile, saveReportToFile } from './reports/files-api';
+import { loadAndParseReportFromFile, saveReportToFile } from './reports/files-api';
 import { getExercisesFromInputString } from './funcs/parse-input';
+import { STORAGE_TRAINING_EMBEDS_KEY, STORAGE_TRAINING_REPORT_KEY, STORAGE_TRAINING_START_KEY, getLSDataByKey, getLSTrainingState, saveLSDataByKey, saveLSTrainingState } from './local-storage/ls-class';
 
 const mockedText =
   'Бег на месте 5х30 сек\n\
@@ -29,26 +30,45 @@ const App = () => {
   const [disableNext, setDisableNext] = useState(false);
   const [disableExerciseText, setDisableExerciseText] = useState<boolean>(false);
   const [seconds, setSeconds] = useState<number>(0);
-  const [currentExerciseNumber, setCurrentExerciseNumber] = useState<number>(1);
-  const [currentExerciseID, setCurrentExerciseID] = useState<string>(1);
+  const [currentExerciseID, setCurrentExerciseID] = useState<string>('1');
   const [trainHasStarted, setTrainHasStarted] = useState<boolean>(false);
   const [startTrainingDate, setStartTrainingDate] = useState<Date>();
   const [previousRepeatEndTime, setPreviousRepeatEndTime] = useState<Date>();
-  const [latestTraining, setLatestTraining] = useState<any>({});
+  const [previousTraining, setPreviousTraining] = useState<any>({});
   const alarmSoundRef = useRef<HTMLAudioElement>(null);
+  const localStorageRef = useRef<HTMLTextAreaElement>(null);
+  const localStorageReportRef = useRef<HTMLTextAreaElement>(null);
+  const embedTextRef = useRef<HTMLTextAreaElement>(null);
+  const [embedList, setEmbedList] = useState<String[]>([]);
+  const [embedText, setEmbedText] = useState<String>('');
 
   useEffect(() => {
     const loadAndSetReportFromFile = async () => {
-      const { exercisesList, startDate, endDate } = await loadReportFromFile();
-      setLatestTraining({
-        exercisesList,
-        exerciseDate: new Date(endDate).toLocaleDateString('ru-RU'),
-        startTime: new Date(startDate).toLocaleTimeString('ru-RU'),
-        endTime: new Date(endDate).toLocaleTimeString('ru-RU')
-      });
-      return exercisesList;
+      const { data, error } = await loadAndParseReportFromFile();
+      if (data && !error) {
+        const { exercisesList, startDate, endDate } = data;
+        setPreviousTraining({
+          exercisesList,
+          exerciseDate: endDate,
+          startTime: startDate,
+          endTime: endDate
+        });
+        return;
+      }
+      // return exercisesList;
     };
 
+    if (MOBILE_MODE === true) {
+      // TODO: load the state of training from local storage if it exists
+      const trainingState = getLSTrainingState();
+      if (trainingState) {
+        const parsedTrainingState = JSON.parse(trainingState);
+        setExercisesData(parsedTrainingState);
+      }
+      const embeds = getLSDataByKey(STORAGE_TRAINING_EMBEDS_KEY);
+      if (embeds) setEmbedList(JSON.parse(embeds));
+      return;
+    }
     loadAndSetReportFromFile();
   },[]);
 
@@ -103,6 +123,17 @@ const App = () => {
 
       setDisableNext(true);
       setExercisesData(updatedExerciseData);
+
+      if (MOBILE_MODE === true) {
+        // TODO: write the state of training to local storage
+        setDisableNext(false);
+        // console.log({ updatedExerciseData });
+        // console.log(JSON.stringify(updatedExerciseData));
+        const trainingState = JSON.stringify(updatedExerciseData);
+        saveLSTrainingState(trainingState);
+        return;
+      }
+
       startAndUpdateTimer(breakDelay, setSeconds, () => {
         setDisableNext(false);
         alarmSoundRef.current?.play();
@@ -117,6 +148,9 @@ const App = () => {
     // Время завершения предыдущего повторения равно времени начала тренировки
     setPreviousRepeatEndTime(startDate);
     setCurrentExerciseID(exercisesData[0].id);
+    // TODO: save training time to local storage
+    saveLSDataByKey(STORAGE_TRAINING_START_KEY, new Date(startDate).toLocaleTimeString('ru-RU'));
+    saveLSTrainingState(JSON.stringify(exercisesData));
   }
 
   const onClickEndAndSave = async () => {
@@ -132,8 +166,13 @@ const App = () => {
     };
     console.log(trainReport);
     console.log(JSON.stringify(trainReport));
-    const statusText = await saveReportToFile(trainReport);
 
+    if (MOBILE_MODE === true) {
+      // TODO: save report to local storage
+      saveLSDataByKey(STORAGE_TRAINING_REPORT_KEY, JSON.stringify(trainReport));
+      return;
+    }
+    const statusText = await saveReportToFile(trainReport);
     console.log(statusText); // parses JSON response into native JavaScript objects
   }
 
@@ -143,7 +182,44 @@ const App = () => {
 
   const nextButtonClass = seconds > 0 ? 'active blink-bg' : '';
 
+  const onClickShowLS = () => {
+    const trainingState = getLSTrainingState();
+    const div = localStorageRef?.current;
+    if (div) div.innerHTML = `${trainingState}`;
+  }
+
+  const onClickShowReportLS = () => {
+    const reportLS = getLSDataByKey(STORAGE_TRAINING_REPORT_KEY);
+    const textAreaReport = localStorageReportRef?.current;
+    if (textAreaReport) textAreaReport.innerHTML = `${reportLS}`;
+  }
+
+  const onClickAddEmbed = () => {
+    const updatedEmbedList = [ ...embedList, embedText ];
+    setEmbedList(updatedEmbedList);
+    saveLSDataByKey(STORAGE_TRAINING_EMBEDS_KEY, JSON.stringify(updatedEmbedList));
+  }
+
+  const onClickClearEmbedText = () => {
+    setEmbedText('');
+    if (embedTextRef?.current) embedTextRef.current.value = '';
+  }
+
+  const onClickClearEmbed = () => {
+    setEmbedList([]);
+    saveLSDataByKey(STORAGE_TRAINING_EMBEDS_KEY, JSON.stringify([]));
+  }
+
+  const onTextEmbedChange = (e: { target: { value: string } }) => {
+    setEmbedText(e.target.value);
+  }
+
+  const onClickClearLSTrainingState = () => {
+    saveLSTrainingState('');
+  }
+
   return (
+    <div>
     <div className="app-container">
       <div className="text-and-table-container">
         <textarea
@@ -158,7 +234,6 @@ const App = () => {
         <ExerciseTable
           exercises={exercisesData}
           // onSecondsChange={onSecondsChange}
-          currentExerciseIndex={currentExerciseNumber}
           currentExerciseID={currentExerciseID}
           trainHasStarted={trainHasStarted}
         />
@@ -174,24 +249,32 @@ const App = () => {
         <div className="presetted-timers-container">
           <div className="previous-training-info">
             <strong>Предыдущая тренировка</strong><br/>
-            {latestTraining.exercisesList && latestTraining.exercisesList.map((exerciseTitle: string) => <Fragment key={v4()}>{exerciseTitle}<br/></Fragment>)}
+            {previousTraining.exercisesList && previousTraining.exercisesList.map((exerciseTitle: string) => <Fragment key={v4()}>{exerciseTitle}<br/></Fragment>)}
             
             <strong>Дата тренировки: </strong>
-            {latestTraining.exerciseDate}<br/>
+            {previousTraining.exerciseDate}<br/>
             
             <strong>Время начала: </strong>
-            {latestTraining.startTime}<br/>
+            {previousTraining.startTime}<br/>
             
             <strong>Время окончания: </strong>
-            {latestTraining.endTime}<br/>
+            {previousTraining.endTime}<br/>
           </div>
           <button onClick={onClickShowPreviousTraining}>
             Show previous training
           </button>
         </div>
         <CustomTimer />
+
+        <br />
+        <br />
+
         <div className="next-button-and-countdown-container">
           <button
+            style={{
+              height: '150px',
+              width: '100px'
+            }}
             onClick={onClickNext}
             disabled={disableNext}
             className={nextButtonClass}>
@@ -200,8 +283,18 @@ const App = () => {
 
           <div className="next-countdown">{seconds}</div>
         </div>
+
+        <br />
+        <br />
+        <br />
+
         <div>
-          <button onClick={onClickEndAndSave}>
+          <button 
+            style={{
+              height: '157px',
+              width: '157px'
+            }}
+            onClick={onClickEndAndSave}>
             END AND SAVE
           </button>
         </div>
@@ -212,6 +305,89 @@ const App = () => {
         <source src={ALARM_SOUND_FILEPATH} type="audio/mpeg"></source>
         Your browser does not support the audio element.
       </audio>
+    </div>
+
+    <br />
+    <br />
+
+    <div>
+      {embedList.map(embed => <div dangerouslySetInnerHTML={{__html: embed}} />)}
+    </div>
+    
+    <br />
+    <br />
+
+    <button onClick={onClickAddEmbed}>Add youtube embed</button>
+    <button onClick={onClickClearEmbedText} style={{ marginLeft: '10px' }}>Clear embed textarea</button>
+    <br/>
+    <br />
+    <button onClick={onClickClearEmbed}>Clear all</button>
+    <br/>
+    <br />
+    <textarea
+        style={{
+          width: '500px',
+          textAlign: 'justify',
+          fontSize: '14px'
+        }}
+        rows={5}
+        onChange={onTextEmbedChange}
+        ref={embedTextRef}
+      >
+      </textarea>
+
+    <br />
+    <br />
+    <br />
+
+    <button onClick={onClickShowLS}>Get local storage contents</button>
+    
+    <br />
+    <br />
+    <br />
+      {/* <div ref={localStorageRef}></div> */}
+      <textarea
+        ref={localStorageRef}
+        style={{
+          width: '500px',
+          textAlign: 'justify',
+          fontSize: '14px'
+        }}
+        rows={10}
+      >
+      </textarea>
+
+
+
+
+    <br />
+    <br />
+    <br />
+
+    <button onClick={onClickShowReportLS}>Get report from local storage</button>
+    
+    <br />
+    <br />
+    <br />
+      {/* <div ref={localStorageRef}></div> */}
+      <textarea
+        ref={localStorageReportRef}
+        style={{
+          width: '500px',
+          textAlign: 'justify',
+          fontSize: '14px'
+        }}
+        rows={10}
+      >
+      </textarea>
+
+
+
+      
+      <br />
+      <br />
+      <br />
+      <button onClick={onClickClearLSTrainingState}>Clear training state from local storage</button>
     </div>
   );
 };

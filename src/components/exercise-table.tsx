@@ -1,6 +1,6 @@
 import { Exercise, ExerciseTableParams } from "../types";
 
-export const ExerciseTable = ({ exercises, currentExerciseIndex, currentExerciseID, trainHasStarted }: ExerciseTableParams) => {
+export const ExerciseTable = ({ exercises, currentExerciseID, trainHasStarted }: ExerciseTableParams) => {
   const renderExercises = () => {
     return (exercises.map((
       exercise: Exercise,
