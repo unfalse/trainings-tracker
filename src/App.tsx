@@ -15,6 +15,7 @@ import './App.css';
 import { loadAndParseReportFromFile, saveReportToFile } from './reports/files-api';
 import { getExercisesFromInputString } from './funcs/parse-input';
 import { STORAGE_TRAINING_EMBEDS_KEY, STORAGE_TRAINING_REPORT_KEY, STORAGE_TRAINING_START_KEY, getLSDataByKey, getLSTrainingState, saveLSDataByKey, saveLSTrainingState } from './local-storage/ls-class';
+import { RationPdfViewer } from './components/ration-pdf-viewer';
 
 const mockedText =
   'Бег на месте 5х30 сек\n\
@@ -25,6 +26,34 @@ const mockedText =
 Планка боковая 4х20 сек';
 
 const App = () => {
+  const [currentTab, setCurrentTab] = useState('training');
+  const renderTab = () => {
+    switch (currentTab) {
+      case 'ration': return <RationPdfViewer />;
+      case 'training': return <TrainingTab />;
+      default:
+        return <TrainingTab />;
+    }
+  }
+
+  const setTrainingTab = () => {
+    setCurrentTab('training');
+  }
+
+  const setRationTab = () => {
+    setCurrentTab('ration');
+  }
+
+  return (
+    <>
+      <button style={{ margin: '10px' }} onClick={setTrainingTab}>Training</button>
+      <button onClick={setRationTab}>Ration</button>
+      {renderTab()}
+    </>
+  );
+};
+
+const TrainingTab = () => {
   const [trainText, setTrainText] = useState<string>(mockedText);
   const [exercisesData, setExercisesData] = useState<Exercise[]>(getExercisesFromInputString(mockedText));
   const [disableNext, setDisableNext] = useState(false);
@@ -64,6 +93,7 @@ const App = () => {
       if (trainingState) {
         const parsedTrainingState = JSON.parse(trainingState);
         setExercisesData(parsedTrainingState);
+        setTrainHasStarted(true);
       }
       const embeds = getLSDataByKey(STORAGE_TRAINING_EMBEDS_KEY);
       if (embeds) setEmbedList(JSON.parse(embeds));
@@ -79,6 +109,11 @@ const App = () => {
   };
 
   const onClickNext = () => {
+    if (!trainHasStarted) {
+      onClickStart();
+      return;
+    }
+
     const startRepeatTime = new Date();
     if (!disableExerciseText) {
       setDisableExerciseText(true);
@@ -237,12 +272,6 @@ const App = () => {
           currentExerciseID={currentExerciseID}
           trainHasStarted={trainHasStarted}
         />
-        <div style={{ position: 'absolute', display: trainHasStarted ? 'none' : 'block', bottom: '50px', left: '50px', backgroundColor: '#0000ffbd' }}>
-          <button onClick={onClickStart} style={{ width: '30vw', height: '100px', backgroundColor: '#0000ff00' }}>
-            START
-          </button>
-        </div>
-
       </div>
 
       <div className="timers-container">
@@ -278,7 +307,7 @@ const App = () => {
             onClick={onClickNext}
             disabled={disableNext}
             className={nextButtonClass}>
-            NEXT
+              {trainHasStarted ? 'NEXT' : 'START'}
           </button>
 
           <div className="next-countdown">{seconds}</div>
