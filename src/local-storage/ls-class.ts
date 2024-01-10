@@ -8,6 +8,8 @@ export const STORAGE_TRAINING_REPORT_KEY = 'TRAINING-REPORT';
 
 export const STORAGE_TRAINING_EMBEDS_KEY = 'TRAINING-EMBEDS';
 
+export const STORAGE_TRAINING_EXERCISES_TEXT_LIST = 'TRAINING_EXERCISES_TEXT_LIST';
+
 export const getLSTrainingState = () => {
     const data = localStorage.getItem(STORAGE_TRAINING_STATE_KEY);
     return data;
