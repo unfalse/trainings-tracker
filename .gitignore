@@ -24,7 +24,6 @@ dist-ssr
 *.sw?
 
 public/alarm.mp3
-public/myration.pdf
 
 .anjuta/
 .anjuta_sym_db.db
