@@ -85,7 +85,6 @@ const TrainingTab = () => {
         });
         return;
       }
-      // return exercisesList;
     };
 
     if (MOBILE_MODE === true) {
@@ -97,9 +96,9 @@ const TrainingTab = () => {
         setTrainHasStarted(true);
         // get last startArray that is not empty
         let currentExerciseIDFromLS = '';
-        (parsedTrainingState as Exercise[]).toReversed().forEach((ex: Exercise) => {
+        (parsedTrainingState as Exercise[]).forEach((ex: Exercise, exIndex: number) => {
           if (ex.startArray.length > 0 && currentExerciseIDFromLS === '') {
-            currentExerciseIDFromLS = ex.id;
+            currentExerciseIDFromLS = parsedTrainingState[exIndex - 1].id;
           }
         });
         if (currentExerciseIDFromLS) {
