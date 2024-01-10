@@ -260,15 +260,12 @@ const TrainingTab = () => {
         <textarea
           className="exercise-text"
           id=""
-          // cols={80}
           rows={10}
           defaultValue={mockedText}
-          // disabled={false || disableExerciseText}
           onChange={onTextChange}></textarea>
         
         <ExerciseTable
           exercises={exercisesData}
-          // onSecondsChange={onSecondsChange}
           currentExerciseID={currentExerciseID}
           trainHasStarted={trainHasStarted}
         />
@@ -354,16 +351,16 @@ const TrainingTab = () => {
     <br/>
     <br />
     <textarea
-        style={{
-          width: '500px',
-          textAlign: 'justify',
-          fontSize: '14px'
-        }}
-        rows={5}
-        onChange={onTextEmbedChange}
-        ref={embedTextRef}
-      >
-      </textarea>
+      style={{
+        width: '500px',
+        textAlign: 'justify',
+        fontSize: '14px'
+      }}
+      rows={5}
+      onChange={onTextEmbedChange}
+      ref={embedTextRef}
+    >
+    </textarea>
 
     <br />
     <br />
@@ -374,7 +371,6 @@ const TrainingTab = () => {
     <br />
     <br />
     <br />
-      {/* <div ref={localStorageRef}></div> */}
       <textarea
         ref={localStorageRef}
         style={{
@@ -386,19 +382,15 @@ const TrainingTab = () => {
       >
       </textarea>
 
+      <br />
+      <br />
+      <br />
 
-
-
-    <br />
-    <br />
-    <br />
-
-    <button onClick={onClickShowReportLS}>Get report from local storage</button>
-    
-    <br />
-    <br />
-    <br />
-      {/* <div ref={localStorageRef}></div> */}
+      <button onClick={onClickShowReportLS}>Get report from local storage</button>
+      
+      <br />
+      <br />
+      <br />
       <textarea
         ref={localStorageReportRef}
         style={{
@@ -410,12 +402,10 @@ const TrainingTab = () => {
       >
       </textarea>
 
+      <br />
+      <br />
+      <br />
 
-
-      
-      <br />
-      <br />
-      <br />
       <button onClick={onClickClearLSTrainingState}>Clear training state from local storage</button>
     </div>
   );
