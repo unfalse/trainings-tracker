@@ -14,7 +14,7 @@ import { Exercise } from './types';
 import './App.css';
 import { loadAndParseReportFromFile, saveReportToFile } from './reports/files-api';
 import { getExercisesFromInputString } from './funcs/parse-input';
-import { STORAGE_TRAINING_EMBEDS_KEY, STORAGE_TRAINING_REPORT_KEY, STORAGE_TRAINING_START_KEY, getLSDataByKey, getLSTrainingState, saveLSDataByKey, saveLSTrainingState } from './local-storage/ls-class';
+import { STORAGE_TRAINING_EMBEDS_KEY, STORAGE_TRAINING_EXERCISES_TEXT_LIST, STORAGE_TRAINING_REPORT_KEY, STORAGE_TRAINING_START_KEY, getLSDataByKey, getLSTrainingState, saveLSDataByKey, saveLSTrainingState } from './local-storage/ls-class';
 import { RationPdfViewer } from './components/ration-pdf-viewer';
 
 const mockedText =
@@ -70,6 +70,7 @@ const TrainingTab = () => {
   const embedTextRef = useRef<HTMLTextAreaElement>(null);
   const [embedList, setEmbedList] = useState<String[]>([]);
   const [embedText, setEmbedText] = useState<String>('');
+  const exerciseTextTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const loadAndSetReportFromFile = async () => {
@@ -94,8 +95,26 @@ const TrainingTab = () => {
         const parsedTrainingState = JSON.parse(trainingState);
         setExercisesData(parsedTrainingState);
         setTrainHasStarted(true);
+        // get last startArray that is not empty
+        let currentExerciseIDFromLS = '';
+        (parsedTrainingState as Exercise[]).toReversed().forEach((ex: Exercise) => {
+          if (ex.startArray.length > 0 && currentExerciseIDFromLS === '') {
+            currentExerciseIDFromLS = ex.id;
+          }
+        });
+        if (currentExerciseIDFromLS) {
+          setCurrentExerciseID(currentExerciseIDFromLS);
+        }
       }
       const embeds = getLSDataByKey(STORAGE_TRAINING_EMBEDS_KEY);
+      const exerciseTextTextareaValue = getLSDataByKey(STORAGE_TRAINING_EXERCISES_TEXT_LIST);
+      if (exerciseTextTextareaValue) {
+        if (exerciseTextTextareaRef.current) {
+          exerciseTextTextareaRef.current.value = exerciseTextTextareaValue;
+        } else {
+          console.info('Cannot find textarea with exercises list!');
+        }
+      }
       if (embeds) setEmbedList(JSON.parse(embeds));
       return;
     }
@@ -186,6 +205,10 @@ const TrainingTab = () => {
     // TODO: save training time to local storage
     saveLSDataByKey(STORAGE_TRAINING_START_KEY, new Date(startDate).toLocaleTimeString('ru-RU'));
     saveLSTrainingState(JSON.stringify(exercisesData));
+    saveLSDataByKey(
+      STORAGE_TRAINING_EXERCISES_TEXT_LIST,
+      exerciseTextTextareaRef.current ? exerciseTextTextareaRef.current.value : ''
+    );
   }
 
   const onClickEndAndSave = async () => {
@@ -251,6 +274,7 @@ const TrainingTab = () => {
 
   const onClickClearLSTrainingState = () => {
     saveLSTrainingState('');
+    saveLSDataByKey(STORAGE_TRAINING_EXERCISES_TEXT_LIST, '');
   }
 
   return (
@@ -258,6 +282,7 @@ const TrainingTab = () => {
     <div className="app-container">
       <div className="text-and-table-container">
         <textarea
+          ref={exerciseTextTextareaRef}
           className="exercise-text"
           id=""
           rows={10}
