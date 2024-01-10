@@ -97,7 +97,7 @@ const TrainingTab = () => {
         // get last startArray that is not empty
         let currentExerciseIDFromLS = '';
         (parsedTrainingState as Exercise[]).forEach((ex: Exercise, exIndex: number) => {
-          if (ex.startArray.length > 0 && currentExerciseIDFromLS === '') {
+          if (ex.startArray.length === 0 && currentExerciseIDFromLS === '') {
             currentExerciseIDFromLS = parsedTrainingState[exIndex - 1].id;
           }
         });
