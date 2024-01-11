@@ -96,11 +96,13 @@ const TrainingTab = () => {
         setTrainHasStarted(true);
         // get last startArray that is not empty
         let currentExerciseIDFromLS = '';
-        (parsedTrainingState as Exercise[]).forEach((ex: Exercise, exIndex: number) => {
-          if (ex.startArray.length === 0 && currentExerciseIDFromLS === '') {
-            currentExerciseIDFromLS = parsedTrainingState[exIndex - 1].id;
-          }
-        });
+        if (parsedTrainingState.length > 0 && parsedTrainingState[0].startArray.length > 0) {
+          (parsedTrainingState as Exercise[]).forEach((ex: Exercise, exIndex: number) => {
+            if (ex.startArray.length === 0 && currentExerciseIDFromLS === '' && exIndex > 0) {
+              currentExerciseIDFromLS = parsedTrainingState[exIndex - 1].id;
+            }
+          });
+        }
         if (currentExerciseIDFromLS) {
           setCurrentExerciseID(currentExerciseIDFromLS);
         }
