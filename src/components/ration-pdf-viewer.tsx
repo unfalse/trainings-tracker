@@ -50,6 +50,7 @@ const getBase64 = (file: File): Promise<string | ArrayBuffer | null> => {
 
 export const RationPdfViewer = () => {
   const [currentReceiptPage, setCurrentReceiptPage] = useState(RECEIPTS_PAGE_START);
+  const [currentRationPageOffset, setCurrentRationtPageOffset] = useState(0);
   const [pdfBase64, setPdfBase64] = useState<string>('');
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -74,10 +75,24 @@ export const RationPdfViewer = () => {
     }
   }
 
+  const previousRationPageClick = () => {
+    if (currentPage - currentRationPageOffset - 1 > 0) {
+      setCurrentRationtPageOffset(currentRationPageOffset - 1);
+    }
+  }
+
+  const nextRationPageClick = () => {
+    setCurrentRationtPageOffset(currentRationPageOffset + 1);
+  }
+
   const previousReceiptPage = () => {
     if (currentReceiptPage - 1 >= RECEIPTS_PAGE_START) {
       setCurrentReceiptPage(currentReceiptPage - 1);
     }
+  }
+
+  const returnToRationPageClick = () => {
+    setCurrentRationtPageOffset(0);
   }
 
   const onChange = async () => {
@@ -94,8 +109,13 @@ export const RationPdfViewer = () => {
 
   return (
     <>
+      <br />
+      <button onClick={previousRationPageClick} style={{ margin: '10px' }}>Previous</button>
+      <button onClick={nextRationPageClick} style={{ margin: '10px' }}>Next</button>
+      <button onClick={returnToRationPageClick} style={{ margin: '10px' }}>Return</button>
+      <br />
       <Document file={pdfBase64}>
-        <Page pageNumber={currentPage} scale={1.5} renderTextLayer={false} renderAnnotationLayer={false}></Page>
+        <Page pageNumber={currentPage + currentRationPageOffset} scale={1.5} renderTextLayer={false} renderAnnotationLayer={false}></Page>
       </Document>
       <br />
       <button onClick={previousReceiptPage} style={{ margin: '10px' }}>Previous</button>
