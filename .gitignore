@@ -31,3 +31,5 @@ trainings-vite.anjuta
 training-dist.tar.gz
 
 train-reports
+
+.env
