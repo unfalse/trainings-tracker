@@ -2,12 +2,9 @@ import {
   useState,
   useRef,
   useEffect,
-  Fragment
 } from 'react';
-import {v4} from 'uuid';
 
 import { ExerciseTable } from './components/exercise-table';
-import { CustomTimer } from './components/custom-timer';
 import { startAndUpdateTimer } from './funcs/start-and-update-timer';
 import { ALARM_SOUND_FILEPATH, EXERCISES_BREAK_TIME, MOBILE_MODE, REPEATS_BREAK_TIME } from './const';
 import { Exercise } from './types';
@@ -46,9 +43,9 @@ const App = () => {
 
   return (
     <>
+      {renderTab()}
       <button style={{ margin: '10px' }} onClick={setTrainingTab}>Training</button>
       <button onClick={setRationTab}>Ration</button>
-      {renderTab()}
     </>
   );
 };
@@ -65,12 +62,11 @@ const TrainingTab = () => {
   const [previousRepeatEndTime, setPreviousRepeatEndTime] = useState<Date>();
   const [previousTraining, setPreviousTraining] = useState<any>({});
   const alarmSoundRef = useRef<HTMLAudioElement>(null);
-  const localStorageRef = useRef<HTMLTextAreaElement>(null);
-  const localStorageReportRef = useRef<HTMLTextAreaElement>(null);
-  const embedTextRef = useRef<HTMLTextAreaElement>(null);
-  const [embedList, setEmbedList] = useState<String[]>([]);
-  const [embedText, setEmbedText] = useState<String>('');
+  const [lastClickTimeOnNext, setLastClickTimeOnNext] = useState<Date>();
   const exerciseTextTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showTrainingInput, setShowTrainingInput] = useState(true);
+  const [showDebugPanel, setShowDebugPanel] = useState<boolean>(false);
+  const [embedList, setEmbedList] = useState<String[]>([]);
 
   useEffect(() => {
     const loadAndSetReportFromFile = async () => {
@@ -96,11 +92,19 @@ const TrainingTab = () => {
         setTrainHasStarted(true);
         // get last startArray that is not empty
         let currentExerciseIDFromLS = '';
+        // if training was just started
+        if (parsedTrainingState.length > 0 && parsedTrainingState[0].startArray.length === 0) {
+          currentExerciseIDFromLS = parsedTrainingState[0].id;
+        }
+        // if at least one repeat is done
         if (parsedTrainingState.length > 0 && parsedTrainingState[0].startArray.length > 0) {
           (parsedTrainingState as Exercise[]).forEach((ex: Exercise, exIndex: number) => {
             if (ex.startArray.length === 0 && currentExerciseIDFromLS === '' && exIndex > 0) {
               currentExerciseIDFromLS = parsedTrainingState[exIndex - 1].id;
             }
+            //  else if (ex.startArray.length === Number(ex.times) && exIndex < parsedTrainingState.length - 1) {
+            //   currentExerciseIDFromLS = parsedTrainingState[exIndex ].id;
+            // }
           });
         }
         if (currentExerciseIDFromLS) {
@@ -122,6 +126,10 @@ const TrainingTab = () => {
     loadAndSetReportFromFile();
   },[]);
 
+  const onClickDebug = () => {
+    setShowDebugPanel(!showDebugPanel);
+  }
+
   const onTextChange = (e: { target: { value: string } }) => {
     const times = getExercisesFromInputString(e.target.value);
     setExercisesData(times);
@@ -129,6 +137,9 @@ const TrainingTab = () => {
   };
 
   const onClickNext = () => {
+    const currentTime = new Date();
+    setLastClickTimeOnNext(currentTime);
+
     if (!trainHasStarted) {
       onClickStart();
       return;
@@ -210,6 +221,7 @@ const TrainingTab = () => {
       STORAGE_TRAINING_EXERCISES_TEXT_LIST,
       exerciseTextTextareaRef.current ? exerciseTextTextareaRef.current.value : ''
     );
+    setShowTrainingInput(false);
   }
 
   const onClickEndAndSave = async () => {
@@ -240,6 +252,83 @@ const TrainingTab = () => {
   }
 
   const nextButtonClass = seconds > 0 ? 'active blink-bg' : '';
+
+
+  return (
+    <div>
+      <div className="app-container">
+        {document.documentElement.clientHeight}
+        {' x '}
+        {document.documentElement.clientWidth}
+        <div className="timers-container">
+          <div>
+            <button
+              style={{
+                height: '150px',
+                width: '100px'
+              }}
+              onClick={onClickNext}
+              disabled={disableNext}
+              className={`${nextButtonClass} training-control-button`}>
+                {trainHasStarted ? 'NEXT' : 'START'}
+            </button>
+          </div>
+
+          <div>
+            <button 
+              className="training-control-button"
+              onClick={onClickEndAndSave}>
+              END AND SAVE
+            </button>
+          </div>
+        </div>
+
+        <div>
+          Previous click on NEXT button: <strong><i>{lastClickTimeOnNext?.toLocaleTimeString('ru-RU')}</i></strong>
+        </div>
+
+        <div className="text-and-table-container">
+          <textarea
+            ref={exerciseTextTextareaRef}
+            className={showTrainingInput ? 'exercise-text' : 'exercise-text-hidden'}
+            id=""
+            rows={10}
+            defaultValue={mockedText}
+            onChange={onTextChange}></textarea>
+        
+          <ExerciseTable
+            exercises={exercisesData}
+            currentExerciseID={currentExerciseID}
+            trainHasStarted={trainHasStarted}
+          />
+        </div>
+
+        <br />
+        <audio id="alarm-sound" ref={alarmSoundRef}>
+          <source src={ALARM_SOUND_FILEPATH} type="audio/mpeg"></source>
+          Your browser does not support the audio element.
+        </audio>
+      </div>
+
+      <button onClick={onClickDebug}>debug</button>
+      <div style={{ display: showDebugPanel ? 'block' : 'none' }}>
+        <DebugBlock embedList={embedList} setEmbedList={setEmbedList} />
+      </div>
+
+    </div>
+  );
+};
+
+type DebugBlockProps = {
+  embedList: String[],
+  setEmbedList: Function,
+}
+
+function DebugBlock({ embedList, setEmbedList }: DebugBlockProps) {
+  const [embedText, setEmbedText] = useState<String>('');
+  const localStorageRef = useRef<HTMLTextAreaElement>(null);
+  const localStorageReportRef = useRef<HTMLTextAreaElement>(null);
+  const embedTextRef = useRef<HTMLTextAreaElement>(null);
 
   const onClickShowLS = () => {
     const trainingState = getLSTrainingState();
@@ -278,88 +367,8 @@ const TrainingTab = () => {
     saveLSDataByKey(STORAGE_TRAINING_EXERCISES_TEXT_LIST, '');
   }
 
-  return (
-    <div>
-    <div className="app-container">
-      <div className="text-and-table-container">
-        <textarea
-          ref={exerciseTextTextareaRef}
-          className="exercise-text"
-          id=""
-          rows={10}
-          defaultValue={mockedText}
-          onChange={onTextChange}></textarea>
-        
-        <ExerciseTable
-          exercises={exercisesData}
-          currentExerciseID={currentExerciseID}
-          trainHasStarted={trainHasStarted}
-        />
-      </div>
-
-      <div className="timers-container">
-        <div className="presetted-timers-container">
-          <div className="previous-training-info">
-            <strong>Предыдущая тренировка</strong><br/>
-            {previousTraining.exercisesList && previousTraining.exercisesList.map((exerciseTitle: string) => <Fragment key={v4()}>{exerciseTitle}<br/></Fragment>)}
-            
-            <strong>Дата тренировки: </strong>
-            {previousTraining.exerciseDate}<br/>
-            
-            <strong>Время начала: </strong>
-            {previousTraining.startTime}<br/>
-            
-            <strong>Время окончания: </strong>
-            {previousTraining.endTime}<br/>
-          </div>
-          <button onClick={onClickShowPreviousTraining}>
-            Show previous training
-          </button>
-        </div>
-        <CustomTimer />
-
-        <br />
-        <br />
-
-        <div className="next-button-and-countdown-container">
-          <button
-            style={{
-              height: '150px',
-              width: '100px'
-            }}
-            onClick={onClickNext}
-            disabled={disableNext}
-            className={nextButtonClass}>
-              {trainHasStarted ? 'NEXT' : 'START'}
-          </button>
-
-          <div className="next-countdown">{seconds}</div>
-        </div>
-
-        <br />
-        <br />
-        <br />
-
-        <div>
-          <button 
-            style={{
-              height: '157px',
-              width: '157px'
-            }}
-            onClick={onClickEndAndSave}>
-            END AND SAVE
-          </button>
-        </div>
-      </div>
-
+  return (<>
       <br />
-      <audio id="alarm-sound" ref={alarmSoundRef}>
-        <source src={ALARM_SOUND_FILEPATH} type="audio/mpeg"></source>
-        Your browser does not support the audio element.
-      </audio>
-    </div>
-
-    <br />
     <br />
 
     <div>
@@ -377,11 +386,7 @@ const TrainingTab = () => {
     <br/>
     <br />
     <textarea
-      style={{
-        width: '500px',
-        textAlign: 'justify',
-        fontSize: '14px'
-      }}
+      className="textarea-debug"
       rows={5}
       onChange={onTextEmbedChange}
       ref={embedTextRef}
@@ -398,12 +403,8 @@ const TrainingTab = () => {
     <br />
     <br />
       <textarea
+        className="textarea-debug"
         ref={localStorageRef}
-        style={{
-          width: '500px',
-          textAlign: 'justify',
-          fontSize: '14px'
-        }}
         rows={10}
       >
       </textarea>
@@ -418,12 +419,8 @@ const TrainingTab = () => {
       <br />
       <br />
       <textarea
+        className="textarea-debug"
         ref={localStorageReportRef}
-        style={{
-          width: '500px',
-          textAlign: 'justify',
-          fontSize: '14px'
-        }}
         rows={10}
       >
       </textarea>
@@ -433,8 +430,7 @@ const TrainingTab = () => {
       <br />
 
       <button onClick={onClickClearLSTrainingState}>Clear training state from local storage</button>
-    </div>
-  );
-};
+  </>);
+}
 
 export default App;
