@@ -4,7 +4,7 @@ import { Document, Page } from 'react-pdf';
 const RECEIPTS_PAGE_START = 58;
 const RECEIPTS_PAGE_END = 77;
 
-const FIRST_DAY_OF_RATION = new Date(2023, 11, 29, 9, 0, 0);
+const FIRST_DAY_OF_RATION = new Date(2024, 1, 2, 9, 0, 0);
 const TODAY = new Date();
 let LAST_DAY_OF_RATION = new Date();
 
@@ -114,18 +114,29 @@ export const RationPdfViewer = () => {
       <button onClick={nextRationPageClick} style={{ margin: '10px' }}>Next</button>
       <button onClick={returnToRationPageClick} style={{ margin: '10px' }}>Return</button>
       <br />
-      <Document file={pdfBase64}>
-        <Page pageNumber={currentPage + currentRationPageOffset} scale={1.5} renderTextLayer={false} renderAnnotationLayer={false}></Page>
-      </Document>
+
+      <div>Ration start date: <strong><i>{FIRST_DAY_OF_RATION.toLocaleDateString('ru-RU', { dateStyle: 'medium' })}</i></strong></div>
+
+      <div style={{ height: '900px' }}>
+        <Document file={pdfBase64}>
+          <Page pageNumber={currentPage + currentRationPageOffset} scale={1.5} renderTextLayer={false} renderAnnotationLayer={false}></Page>
+        </Document>
+      </div>
+
       <br />
       <button onClick={previousReceiptPage} style={{ margin: '10px' }}>Previous</button>
       <button onClick={nextReceiptPage} style={{ margin: '10px' }}>Next</button>
       <br />
-      <Document file={pdfBase64}>
-        <Page pageNumber={currentReceiptPage} scale={1.5} renderTextLayer={false} renderAnnotationLayer={false}></Page>
-      </Document>
-      <label htmlFor="avatar">Choose a profile picture:</label>
-      <input type="file" id="avatar" name="avatar" accept=".pdf" onChange={onChange} ref={fileInput} />
+
+      <div style={{ height: '900px' }}>
+        <Document file={pdfBase64}>
+          <Page pageNumber={currentReceiptPage} scale={1.5} renderTextLayer={false} renderAnnotationLayer={false}></Page>
+        </Document>
+      </div>
+
+      <label htmlFor="ration">Choose a pdf with ration:</label>
+      <input type="file" id="ration" accept=".pdf" onChange={onChange} ref={fileInput} />
+      <br/>
     </>
   );
 };

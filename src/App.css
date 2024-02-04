@@ -1,19 +1,24 @@
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 5px;
   text-align: center;
+  width: 100%;
 }
 
 .app-container {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: center;
 }
 
 .exercise-text {
   font-family: 'Courier New', Courier, monospace;
   font-size: 16pt;
+}
+
+.exercise-text-hidden {
+  display: none;
 }
 
 .text-and-table-container {
@@ -23,7 +28,9 @@
 }
 
 .timers-container {
-  margin: 0px 20px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 }
 
 .presetted-timers-container {
@@ -34,11 +41,6 @@
 .previous-training-info {
   font-size: 14px;
   text-align: justify;
-}
-
-.next-button-and-countdown-container {
-  display: inline-block;
-  margin: 20px;
 }
 
 .next-countdown {
@@ -90,4 +92,15 @@
   background-color: white;
   font-size: 8pt;
   right: 105px;
+}
+
+.training-control-button {
+  height: 150px;
+  width: 170px;
+}
+
+.textarea-debug {
+  width: 100%;
+  text-align: justify;
+  font-size: 14px;
 }
