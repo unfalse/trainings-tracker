@@ -56,10 +56,14 @@
 
 .exercise-table-row-active {
   background-color: lime;
+  font-size: 14px;
+  font-style: italic;
 }
 
 .exercise-table-row-inactive {
   background-color: white;
+  font-size: 14px;
+  font-style: italic;
 }
 
 .timer-button-container {

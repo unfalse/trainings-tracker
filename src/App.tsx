@@ -11,7 +11,7 @@ import { Exercise } from './types';
 import './App.css';
 import { loadAndParseReportFromFile, saveReportToFile } from './reports/files-api';
 import { getExercisesFromInputString } from './funcs/parse-input';
-import { STORAGE_TRAINING_EMBEDS_KEY, STORAGE_TRAINING_EXERCISES_TEXT_LIST, STORAGE_TRAINING_REPORT_KEY, STORAGE_TRAINING_START_KEY, getLSDataByKey, getLSTrainingState, saveLSDataByKey, saveLSTrainingState } from './local-storage/ls-class';
+import { STORAGE_LAST_NEXT_BUTTON_CLICK_TIME, STORAGE_TRAINING_EMBEDS_KEY, STORAGE_TRAINING_EXERCISES_TEXT_LIST, STORAGE_TRAINING_EXERCISE_ID, STORAGE_TRAINING_REPORT_KEY, STORAGE_TRAINING_START_KEY, getLSDataByKey, getLSTrainingState, saveLSDataByKey, saveLSTrainingState } from './local-storage/ls-class';
 import { RationPdfViewer } from './components/ration-pdf-viewer';
 
 const mockedText =
@@ -88,25 +88,14 @@ const TrainingTab = () => {
       const trainingState = getLSTrainingState();
       if (trainingState) {
         const parsedTrainingState = JSON.parse(trainingState);
+        const lastClickTimeOnNext = new Date(parseInt(getLSDataByKey(STORAGE_LAST_NEXT_BUTTON_CLICK_TIME) || '', 10));
+
         setExercisesData(parsedTrainingState);
         setTrainHasStarted(true);
-        // get last startArray that is not empty
-        let currentExerciseIDFromLS = '';
-        // if training was just started
-        if (parsedTrainingState.length > 0 && parsedTrainingState[0].startArray.length === 0) {
-          currentExerciseIDFromLS = parsedTrainingState[0].id;
-        }
-        // if at least one repeat is done
-        if (parsedTrainingState.length > 0 && parsedTrainingState[0].startArray.length > 0) {
-          (parsedTrainingState as Exercise[]).forEach((ex: Exercise, exIndex: number) => {
-            if (ex.startArray.length === 0 && currentExerciseIDFromLS === '' && exIndex > 0) {
-              currentExerciseIDFromLS = parsedTrainingState[exIndex - 1].id;
-            }
-            //  else if (ex.startArray.length === Number(ex.times) && exIndex < parsedTrainingState.length - 1) {
-            //   currentExerciseIDFromLS = parsedTrainingState[exIndex ].id;
-            // }
-          });
-        }
+        setShowTrainingInput(false);
+        setLastClickTimeOnNext(lastClickTimeOnNext);
+
+        let currentExerciseIDFromLS = getLSDataByKey(STORAGE_TRAINING_EXERCISE_ID);
         if (currentExerciseIDFromLS) {
           setCurrentExerciseID(currentExerciseIDFromLS);
         }
@@ -139,6 +128,7 @@ const TrainingTab = () => {
   const onClickNext = () => {
     const currentTime = new Date();
     setLastClickTimeOnNext(currentTime);
+    saveLSDataByKey(STORAGE_LAST_NEXT_BUTTON_CLICK_TIME, currentTime.getTime().toString());
 
     if (!trainHasStarted) {
       onClickStart();
@@ -170,6 +160,7 @@ const TrainingTab = () => {
       });
 
       let breakDelay: number = REPEATS_BREAK_TIME;
+      let updatedCurrentExerciseID = '';
       // 4. Если число выполненных подходов равно общему числу подходов
       if (
         Number(exerciseInProgress.times) - 1 === exerciseInProgress.progress
@@ -177,14 +168,16 @@ const TrainingTab = () => {
         const currentExerciseIndex = exercisesData.findIndex(({ id }) => id === currentExerciseID);
         // 5. Устанавливаем интервал для перерыва между упражнениями
         breakDelay = EXERCISES_BREAK_TIME;
+        
         if (currentExerciseIndex === exercisesData.length - 1) {
           // 6. Если текущий номер упражнения больше чем общее количество упражнений,
           // то текущий номер будет равен первому упражнению
-          setCurrentExerciseID(exercisesData[0].id);
+          updatedCurrentExerciseID = exercisesData[0].id;
         } else {
           // 7. Иначе текущий номер увеличиваем на 1
-          setCurrentExerciseID(exercisesData[currentExerciseIndex + 1].id);
+          updatedCurrentExerciseID = exercisesData[currentExerciseIndex + 1].id;
         }
+        setCurrentExerciseID(updatedCurrentExerciseID);
       }
 
       setDisableNext(true);
@@ -193,10 +186,11 @@ const TrainingTab = () => {
       if (MOBILE_MODE === true) {
         // TODO: write the state of training to local storage
         setDisableNext(false);
-        // console.log({ updatedExerciseData });
-        // console.log(JSON.stringify(updatedExerciseData));
         const trainingState = JSON.stringify(updatedExerciseData);
         saveLSTrainingState(trainingState);
+        if (updatedCurrentExerciseID !== '') {
+          saveLSDataByKey(STORAGE_TRAINING_EXERCISE_ID, updatedCurrentExerciseID);
+        }
         return;
       }
 
@@ -209,11 +203,14 @@ const TrainingTab = () => {
 
   const onClickStart = () => {
     const startDate = new Date();
+    const updatedCurrentExerciseId = exercisesData[0].id;
+
     setTrainHasStarted(true);
     setStartTrainingDate(startDate);
     // Время завершения предыдущего повторения равно времени начала тренировки
     setPreviousRepeatEndTime(startDate);
-    setCurrentExerciseID(exercisesData[0].id);
+    setCurrentExerciseID(updatedCurrentExerciseId);
+
     // TODO: save training time to local storage
     saveLSDataByKey(STORAGE_TRAINING_START_KEY, new Date(startDate).toLocaleTimeString('ru-RU'));
     saveLSTrainingState(JSON.stringify(exercisesData));
@@ -221,6 +218,8 @@ const TrainingTab = () => {
       STORAGE_TRAINING_EXERCISES_TEXT_LIST,
       exerciseTextTextareaRef.current ? exerciseTextTextareaRef.current.value : ''
     );
+    saveLSDataByKey(STORAGE_TRAINING_EXERCISE_ID, updatedCurrentExerciseId);
+
     setShowTrainingInput(false);
   }
 
@@ -247,19 +246,29 @@ const TrainingTab = () => {
     console.log(statusText); // parses JSON response into native JavaScript objects
   }
 
-  const onClickShowPreviousTraining = async () => {
+  const onClickClearExercisesText = () => {
+    if (exerciseTextTextareaRef.current) {
+      exerciseTextTextareaRef.current.value = '';
+    }
+  }
 
+  const onClickPasteFromClipboard = () => {
+    navigator.clipboard
+    .readText()
+    .then(
+      (clipText) => {
+        if (exerciseTextTextareaRef.current) {
+          exerciseTextTextareaRef.current.value = clipText;
+        }
+      }
+    );
   }
 
   const nextButtonClass = seconds > 0 ? 'active blink-bg' : '';
 
-
   return (
     <div>
       <div className="app-container">
-        {document.documentElement.clientHeight}
-        {' x '}
-        {document.documentElement.clientWidth}
         <div className="timers-container">
           <div>
             <button
@@ -272,6 +281,11 @@ const TrainingTab = () => {
               className={`${nextButtonClass} training-control-button`}>
                 {trainHasStarted ? 'NEXT' : 'START'}
             </button>
+          </div>
+
+          <div style={{ display: trainHasStarted ? 'none' : 'flex', flexDirection: 'row' }}>
+            <button style={{ marginRight: '10px' }} onClick={onClickClearExercisesText}>CLEAR</button>
+            <button onClick={onClickPasteFromClipboard}>PASTE</button>
           </div>
 
           <div>
@@ -365,6 +379,9 @@ function DebugBlock({ embedList, setEmbedList }: DebugBlockProps) {
   const onClickClearLSTrainingState = () => {
     saveLSTrainingState('');
     saveLSDataByKey(STORAGE_TRAINING_EXERCISES_TEXT_LIST, '');
+    saveLSDataByKey(STORAGE_TRAINING_START_KEY, '');
+    saveLSDataByKey(STORAGE_TRAINING_EXERCISE_ID, '');
+    saveLSDataByKey(STORAGE_LAST_NEXT_BUTTON_CLICK_TIME, '');
   }
 
   return (<>
