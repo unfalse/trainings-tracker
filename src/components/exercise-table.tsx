@@ -33,10 +33,34 @@ export const ExerciseTable = ({ exercises, currentExerciseID, trainHasStarted }:
     ))
   };
 
+  const renderOnlyCurrentExercise = () => {
+    const currentExercise = exercises.find(exercise => exercise.id === currentExerciseID);
+    if (currentExercise) {
+      return (<>
+        <tr key={v4()}>
+          <td style={{ fontWeight: '600'}}>Название и номер</td>
+          <td>{currentExercise.title}</td>
+        </tr>
+        <tr key={v4()}>
+          <td style={{ fontWeight: '600'}}>Подходы и повторения</td>
+          <td>{currentExercise.times} x {currentExercise.repeats}, {currentExercise.after}</td>
+        </tr>
+        <tr key={v4()}>
+          <td style={{ fontWeight: '600'}}>Прогресс</td>
+          <td>{currentExercise.progress}</td>
+        </tr>
+        <tr>
+          <td style={{ borderTop: '1px solid black' }}></td><td style={{ borderTop: '1px solid black' }}></td>
+        </tr>
+      </>);
+    }
+  }
+
   return (
     <div style={{ color: trainHasStarted ? 'black' : 'darkgray', textAlign: 'justify' }}>
       <table>
         <tbody>
+          {renderOnlyCurrentExercise()}
           <tr>
             <td style={{ borderTop: '1px solid black' }}></td><td style={{ borderTop: '1px solid black' }}></td>
           </tr>
