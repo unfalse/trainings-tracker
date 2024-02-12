@@ -259,6 +259,7 @@ const TrainingTab = () => {
       (clipText) => {
         if (exerciseTextTextareaRef.current) {
           exerciseTextTextareaRef.current.value = clipText;
+          onTextChange({ target: { value: clipText }});
         }
       }
     );

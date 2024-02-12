@@ -108,3 +108,20 @@
   text-align: justify;
   font-size: 14px;
 }
+
+.calendar-fix .react-calendar button, .react-calendar__tile, .react-calendar__navigation button {
+  background-color: white;
+  border-radius: 0px;
+  border: 1px solid lightgray;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  color: black;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+.react-calendar {
+  margin: auto;
+}

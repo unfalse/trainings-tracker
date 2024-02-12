@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Document, Page } from 'react-pdf';
+import Calendar from 'react-calendar';
+import { LooseValue, Range } from 'react-calendar/dist/cjs/shared/types';
+
+import 'react-calendar/dist/Calendar.css';
 
 const RECEIPTS_PAGE_START = 58;
-const RECEIPTS_PAGE_END = 77;
+const FOUR_WEEKS_DAYS_COUNT = 27;
 
-const FIRST_DAY_OF_RATION = new Date(2024, 1, 2, 9, 0, 0);
 const TODAY = new Date();
-let LAST_DAY_OF_RATION = new Date();
-
-LAST_DAY_OF_RATION.setDate(FIRST_DAY_OF_RATION.getDate() + 27);
 
 type WeeksToPages = { [index: number]: number };
 
@@ -20,6 +20,7 @@ const WEEKS_TO_FIRST_PAGES_MAPPING: WeeksToPages = {
 };
 
 const LOCAL_STORAGE_FILE = 'pdf-BASE64';
+const LOCAL_STORAGE_RATION_START_DATE = 'RATION-START-DATE';
 
 const getCurrentPageInRation = (today: Date, firstDay: Date, weeksMapping: WeeksToPages): number => {
   const Difference_In_Time = today.getTime() - firstDay.getTime();
@@ -41,38 +42,40 @@ const getBase64 = (file: File): Promise<string | ArrayBuffer | null> => {
   });
 };
 
-// console.log({
-//   Difference_In_Days,
-//   currentWeek,
-//   pageInRation,
-// });
-// console.log({ TODAY, FIRST_DAY_OF_RATION });
-
 export const RationPdfViewer = () => {
   const [currentReceiptPage, setCurrentReceiptPage] = useState(RECEIPTS_PAGE_START);
   const [currentRationPageOffset, setCurrentRationtPageOffset] = useState(0);
   const [pdfBase64, setPdfBase64] = useState<string>('');
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [rationStartDate, setRationStartDate] = useState<Date>(TODAY);
+  
   const fileInput = useRef<HTMLInputElement>(null);
+  let lastDayOfRation = new Date();
+  lastDayOfRation.setDate(rationStartDate.getDate() + FOUR_WEEKS_DAYS_COUNT);
 
   useEffect(() => {
     const fileFromLocalStorage = localStorage.getItem(LOCAL_STORAGE_FILE);
+    const rawRationStartDateFromLS = localStorage.getItem(LOCAL_STORAGE_RATION_START_DATE);
+    const rationStartDateFromLocalStorage = rawRationStartDateFromLS !== null ? new Date(parseInt(rawRationStartDateFromLS || '', 10)) : '';
     if (fileFromLocalStorage) {
       setPdfBase64(fileFromLocalStorage);
     }
+    if (rationStartDateFromLocalStorage !== '') {
+      setRationStartDate(rationStartDateFromLocalStorage);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  if (TODAY > LAST_DAY_OF_RATION) {
+  if (TODAY > lastDayOfRation) {
     return (
       <div>The ration is over! Nothing to display.</div>
     );
   }
 
-  const currentPage = getCurrentPageInRation(TODAY, FIRST_DAY_OF_RATION, WEEKS_TO_FIRST_PAGES_MAPPING);
+  const currentPage = getCurrentPageInRation(TODAY, rationStartDate, WEEKS_TO_FIRST_PAGES_MAPPING);
 
   const nextReceiptPage = () => {
-    if (currentReceiptPage + 1 <= RECEIPTS_PAGE_END) {
-      setCurrentReceiptPage(currentReceiptPage + 1);
-    }
+    setCurrentReceiptPage(currentReceiptPage + 1);
   }
 
   const previousRationPageClick = () => {
@@ -86,13 +89,17 @@ export const RationPdfViewer = () => {
   }
 
   const previousReceiptPage = () => {
-    if (currentReceiptPage - 1 >= RECEIPTS_PAGE_START) {
+    if (currentReceiptPage - 1 > 0) {
       setCurrentReceiptPage(currentReceiptPage - 1);
     }
   }
 
   const returnToRationPageClick = () => {
     setCurrentRationtPageOffset(0);
+  }
+
+  const returnToReceiptPageClick = () => {
+    setCurrentReceiptPage(RECEIPTS_PAGE_START);
   }
 
   const onChange = async () => {
@@ -107,15 +114,54 @@ export const RationPdfViewer = () => {
     setPdfBase64(data);
   }
 
+  const onSettingsClick = () => {
+    setShowSettings(!showSettings);
+  }
+
+  const onStartDateChange = (e: { target: { value: string } }) => {
+      const selectedDate = new Date(e.target.value);
+    const chosenRationStartDate = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      9, 0, 0
+    );
+    setRationStartDate(chosenRationStartDate);
+    localStorage.setItem(LOCAL_STORAGE_RATION_START_DATE, chosenRationStartDate.getTime().toString());
+  }
+
+  const rationDatesArray: LooseValue = rationStartDate !== TODAY ? [rationStartDate, TODAY] : TODAY;
+  const rationStartDateLocaleString = rationStartDate.toLocaleDateString('en-CA')
+
   return (
     <>
+      <div onClick={onSettingsClick} style={{ cursor: 'pointer',  userSelect: 'none' }}>
+        {showSettings ? '-' : '+'}{' settings '}{showSettings ? '-' : '+'}
+      </div>
+      {showSettings && <div style={{ width: '600px' }}>
+        <br/>
+        Choose ration start date:&nbsp;
+        <input type="date" onChange={onStartDateChange} defaultValue={rationStartDateLocaleString} />
+        <br/><br/>
+        <Calendar 
+          value={rationDatesArray}
+          className="calendar-fix"
+          showNavigation
+        />
+        <br/>
+        <br/>
+        <label htmlFor="ration">Choose a pdf with ration:</label>
+        <input type="file" id="ration" accept=".pdf" onChange={onChange} ref={fileInput} />
+      </div>}
+      
+      
       <br />
       <button onClick={previousRationPageClick} style={{ margin: '10px' }}>Previous</button>
       <button onClick={nextRationPageClick} style={{ margin: '10px' }}>Next</button>
       <button onClick={returnToRationPageClick} style={{ margin: '10px' }}>Return</button>
       <br />
 
-      <div>Ration start date: <strong><i>{FIRST_DAY_OF_RATION.toLocaleDateString('ru-RU', { dateStyle: 'medium' })}</i></strong></div>
+      <div>Ration start date: <strong><i>{rationStartDate.toLocaleDateString('ru-RU', { dateStyle: 'medium' })}</i></strong></div>
 
       <div style={{ height: '900px' }}>
         <Document file={pdfBase64}>
@@ -126,6 +172,7 @@ export const RationPdfViewer = () => {
       <br />
       <button onClick={previousReceiptPage} style={{ margin: '10px' }}>Previous</button>
       <button onClick={nextReceiptPage} style={{ margin: '10px' }}>Next</button>
+      <button onClick={returnToRationPageClick} style={{ margin: '10px' }}>Return</button>
       <br />
 
       <div style={{ height: '900px' }}>
@@ -133,10 +180,6 @@ export const RationPdfViewer = () => {
           <Page pageNumber={currentReceiptPage} scale={1.5} renderTextLayer={false} renderAnnotationLayer={false}></Page>
         </Document>
       </div>
-
-      <label htmlFor="ration">Choose a pdf with ration:</label>
-      <input type="file" id="ration" accept=".pdf" onChange={onChange} ref={fileInput} />
-      <br/>
     </>
   );
 };
