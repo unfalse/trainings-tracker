@@ -2,6 +2,10 @@ import { useState } from "react";
 
 import { Exercise, TrainReport } from "../types";
 
+type RenderTrainReportParams = {
+    trainReport: TrainReport;
+}
+
 export const ReportsTab = () => {
     const [trainReports, setTrainReports] = useState<TrainReport[]>();
 
@@ -23,9 +27,9 @@ export const ReportsTab = () => {
 
     const addLeadingZero = (value: number) => value > 10 ? value : `0${value}`;
 
-    const RenderTrainReport = ({ trainReport }) => {
+    const RenderTrainReport = ({ trainReport }: RenderTrainReportParams) => {
         if (trainReport === undefined) return null;
-        const { trainText, trainDuration, endDate, exercisesData } = trainReport;
+        const { endDate, exercisesData } = trainReport;
         let { startDate } = trainReport;
 
         if (!startDate && exercisesData && exercisesData.length > 0 && exercisesData[0].startArray && exercisesData[0].startArray.length > 0) {
