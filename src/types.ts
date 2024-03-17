@@ -44,3 +44,12 @@ export type TrainInfo = {
     /**  Дата и время окончания тренировки */
     endDate: Date;
 }
+
+export type TrainReport = {
+    trainText: string;
+    startDate: Date;
+    endDate: Date;
+    trainDuration: number;
+    lastCompletedExercise: string;
+    exercisesData: Exercise[];
+};
