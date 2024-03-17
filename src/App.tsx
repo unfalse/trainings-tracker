@@ -13,6 +13,7 @@ import { loadAndParseReportFromFile, saveReportToFile } from './reports/files-ap
 import { getExercisesFromInputString } from './funcs/parse-input';
 import { STORAGE_LAST_NEXT_BUTTON_CLICK_TIME, STORAGE_TRAINING_EMBEDS_KEY, STORAGE_TRAINING_EXERCISES_TEXT_LIST, STORAGE_TRAINING_EXERCISE_ID, STORAGE_TRAINING_REPORT_KEY, STORAGE_TRAINING_START_KEY, getLSDataByKey, getLSTrainingState, saveLSDataByKey, saveLSTrainingState } from './local-storage/ls-class';
 import { RationPdfViewer } from './components/ration-pdf-viewer';
+import { ReportsTab } from './components/reports';
 
 const mockedText =
   'Бег на месте 5х30 сек\n\
@@ -28,6 +29,7 @@ const App = () => {
     switch (currentTab) {
       case 'ration': return <RationPdfViewer />;
       case 'training': return <TrainingTab />;
+      case 'reports': return <ReportsTab />;
       default:
         return <TrainingTab />;
     }
@@ -41,11 +43,16 @@ const App = () => {
     setCurrentTab('ration');
   }
 
+  const setReportsTab = () => {
+    setCurrentTab('reports');
+  }
+
   return (
     <>
       {renderTab()}
       <button style={{ margin: '10px' }} onClick={setTrainingTab}>Training</button>
       <button onClick={setRationTab}>Ration</button>
+      <button style={{ margin: '10px' }} onClick={setReportsTab}>Reports</button>
     </>
   );
 };
