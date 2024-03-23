@@ -56,22 +56,29 @@ export const ReportsTab = () => {
 
         const durationString = `${totalHours}:${addLeadingZero(remMinutes)}:${addLeadingZero(remSeconds)}`;
 
+        const showTime = false;
+        const showDuration = false;
+        const showSubsequentDurations = false;
+
         return (
             <div>
                 <div>Дата: {RenderDate(startDate)}</div>
-                <div>Время начала: {RenderTime(startDate)}</div>
-                <div>Время окончания: {RenderTime(endDate)}</div>
-                <div>Продолжительность: {durationString}</div>
+                {showTime ? <>
+                    <div>Время начала: {RenderTime(startDate)}</div>
+                    <div>Время окончания: {RenderTime(endDate)}</div>
+                </> : null}
+                {showDuration ? <div>Продолжительность: {durationString}</div> : null}
                 <br/>
 
                 {exercisesData.map((exercise: Exercise, exerciseIndex: number) => (
                     <div key={exercise.id}>
                         <div>{exerciseIndex + 1}. {exercise.title} {exercise.times} x {exercise.repeats} {exercise.after}</div>
-                        <div>{exercise.startArray ? exercise.startArray.map(startTime => RenderTime(startTime)).join(' | ') : null}</div>
+                        {showSubsequentDurations ? <div>{exercise.startArray ? exercise.startArray.map(startTime => RenderTime(startTime)).join(' | ') : null}</div> : null}
                     </div>
                 ))}
-
-                <hr />
+                <br/>
+                ------
+                <br/>
             </div>
         )
     }
